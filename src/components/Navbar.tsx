@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingBag, Search, User, Menu, X, Heart, Truck, ShieldCheck, HeadphonesIcon, ChevronDown, ShieldAlert, Phone, Mail } from 'lucide-react';
+import { ShoppingBag, Search, User, Menu, X, Heart, Truck, ShieldCheck, HeadphonesIcon, ChevronDown, ShieldAlert, Phone, Mail, Zap, CreditCard, Sparkles } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { STORE_CONFIG } from '../config';
 import { useCart } from '../context/CartContext';
@@ -53,24 +53,47 @@ export default function Navbar() {
     { name: 'Contact', path: '/contact' },
   ];
 
+  const marqueeAnnouncements = [
+    { icon: Truck, text: 'Free Delivery on Orders Over KSh 5,000' },
+    { icon: ShieldCheck, text: '100% Genuine Tech & Brand Warranty' },
+    { icon: Zap, text: 'Express Same-Day Dispatch in Nairobi' },
+    { icon: HeadphonesIcon, text: '24/7 Dedicated Customer & Tech Support' },
+    { icon: CreditCard, text: 'Secure Payments via Lipa Na M-PESA & Cards' },
+    { icon: Sparkles, text: 'Official Authorized Electronics & Accessories Dealer' },
+  ];
+
   return (
     <>
-      {/* Top Trust Bar */}
-      <div className="bg-[#082B52] text-white">
-        <div className="max-w-[1440px] mx-auto px-3 sm:px-6 lg:px-12 h-10 sm:h-11 flex items-center overflow-x-auto scrollbar-hide">
-          <div className="flex items-center justify-between w-full min-w-[max-content] sm:min-w-0 gap-6 sm:gap-8 text-[11px] sm:text-[13px] font-medium tracking-wide">
-            <div className="flex items-center gap-2 text-[#E5EAF2] shrink-0">
-              <Truck size={14} className="text-[#38bdf8] shrink-0" />
-              <span>Free delivery on orders over KSh 5,000</span>
-            </div>
-            <div className="flex items-center gap-2 text-[#E5EAF2] shrink-0">
-              <ShieldCheck size={14} className="text-[#38bdf8] shrink-0" />
-              <span>100% Genuine Products</span>
-            </div>
-            <div className="flex items-center gap-2 text-[#E5EAF2] shrink-0">
-              <HeadphonesIcon size={14} className="text-[#38bdf8] shrink-0" />
-              <span>24/7 Customer Support</span>
-            </div>
+      {/* Top Blue Marquee Trust Bar */}
+      <div 
+        id="header-announcement-marquee" 
+        className="relative bg-[#082B52] text-white border-b border-[#0c396c] overflow-hidden select-none"
+        aria-label="Store Announcements"
+      >
+        {/* Soft edge gradient fades */}
+        <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-8 sm:w-16 z-10 bg-gradient-to-r from-[#082B52] to-transparent" />
+        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 sm:w-16 z-10 bg-gradient-to-l from-[#082B52] to-transparent" />
+
+        <div className="h-9 sm:h-10 flex items-center overflow-hidden">
+          <div className="animate-marquee flex items-center shrink-0">
+            {/* Render items twice for a gapless, infinite marquee loop */}
+            {[0, 1].map((copyIndex) => (
+              <div key={copyIndex} className="flex items-center shrink-0">
+                {marqueeAnnouncements.map((item, index) => {
+                  const Icon = item.icon;
+                  return (
+                    <div 
+                      key={`${copyIndex}-${index}`} 
+                      className="flex items-center gap-2 px-4 sm:px-7 text-[11px] sm:text-xs font-medium text-[#E5EAF2] shrink-0 tracking-wide"
+                    >
+                      <Icon size={14} className="text-[#38bdf8] shrink-0" />
+                      <span>{item.text}</span>
+                      <span className="text-[#38bdf8]/40 ml-4 sm:ml-7 text-[10px]" aria-hidden="true">✦</span>
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
           </div>
         </div>
       </div>
