@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Plus, Edit2, Trash2, Image as ImageIcon, X, Upload, Search, Filter, CheckSquare } from 'lucide-react';
+import { Plus, Edit2, Trash2, Image as ImageIcon, X, Upload, Search, Filter, CheckSquare, Sparkles, Headphones, Tag, Flame } from 'lucide-react';
 import AdminBulkProductsModal from '../../components/admin/AdminBulkProductsModal';
 import AdminBulkEditModal from '../../components/admin/AdminBulkEditModal';
 
@@ -22,6 +22,7 @@ export default function AdminProducts() {
   const [brandFilter, setBrandFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [stockFilter, setStockFilter] = useState('all');
+  const [badgeFilter, setBadgeFilter] = useState('all');
 
   const [formData, setFormData] = useState({
     name: '',
@@ -34,6 +35,9 @@ export default function AdminProducts() {
     sku: '',
     stock_quantity: 0,
     is_featured: false,
+    is_accessory: false,
+    is_best_seller: false,
+    on_sale: false,
     status: 'active'
   });
 
@@ -50,13 +54,67 @@ export default function AdminProducts() {
       setLoading(true);
       const [productsRes, categoriesRes, brandsRes] = await Promise.all([
         supabase.from('products').select('*, categories(name)').order('created_at', { ascending: false }),
-        supabase.from('categories').select('id, name').order('name'),
+        supabase.from('categories').select('id, name, slug').order('name'),
         supabase.from('brands').select('id, name').order('name')
       ]);
 
       if (productsRes.error) throw productsRes.error;
       if (categoriesRes.error) throw categoriesRes.error;
-      if (brandsRes && !brandsRes.error) setBrands(brandsRes.data || []);
+      if (brandsRes && !brandsRes.error) {
+        setBrands((brandsRes.data || []).filter((b: any) => 
+          b.name && !['accessories', 'accessory', 'jayliam'].includes(b.name.toLowerCase())
+        ));
+      }
+
+      // One-time auto cleanup for any legacy product where brand was incorrectly stored as 'Accessories'
+      try {
+        await supabase.from('products').update({ brand: '' }).ilike('brand', 'accessories');
+        await supabase.from('brands').delete().ilike('name', 'accessories');
+      } catch (e) {}
+
+      let cats = categoriesRes.data || [];
+      // Ensure Accessories category is recognized
+      const hasAccessories = cats.some((c: any) => 
+        c.name?.toLowerCase().includes('accessor') || c.slug === 'accessories'
+      );
+      if (!hasAccessories) {
+        try {
+          const { data: newCat } = await supabase
+            .from('categories')
+            .insert([{
+              name: 'Accessories',
+              slug: 'accessories',
+              status: 'active',
+              display_order: 4,
+              description: 'Phone cases, chargers, screen protectors, cables & tech accessories'
+            }])
+            .select()
+            .single();
+          if (newCat) {
+            cats = [...cats, newCat];
+          }
+        } catch (e) {
+          // Handled gracefully if session not present
+        }
+      }
+
+      // Fetch Best Sellers to identify which products are currently marked
+      const bsProductIds = new Set<string>();
+      try {
+        const { data: bsItems } = await supabase.from('best_seller_products').select('product_id');
+        if (bsItems && bsItems.length > 0) {
+          bsItems.forEach((b: any) => { if (b.product_id) bsProductIds.add(b.product_id); });
+        }
+      } catch (e) {
+        // Table may not exist yet or empty
+      }
+      try {
+        const localBs = localStorage.getItem('jayliam_best_sellers_ids');
+        if (localBs) {
+          const parsed = JSON.parse(localBs);
+          if (Array.isArray(parsed)) parsed.forEach((id: string) => bsProductIds.add(id));
+        }
+      } catch (e) {}
 
       // Fetch primary images for each product
       const productData = await Promise.all(
@@ -69,14 +127,19 @@ export default function AdminProducts() {
             .limit(1)
             .single();
           
-          return { ...p, primary_image: images?.image_url || null };
+          const isBestSeller = Boolean(p.is_best_seller || bsProductIds.has(p.id));
+          return { 
+            ...p, 
+            primary_image: images?.image_url || null,
+            is_best_seller: isBestSeller
+          };
         })
       );
 
       setProducts(productData);
-      setCategories(categoriesRes.data || []);
+      setCategories(cats);
     } catch (error) {
-      if (error && error.code === 'PGRST205') {
+      if (error && (error as any).code === 'PGRST205') {
         console.warn('Error fetching data:' + ' (Brands table missing, ignored)');
       } else {
         console.error('Error fetching data:', error);
@@ -89,9 +152,26 @@ export default function AdminProducts() {
   const handleOpenModal = async (product: any = null) => {
     if (product) {
       setEditingId(product.id);
+      const isAcc = (product.is_accessory !== undefined && product.is_accessory !== null)
+        ? Boolean(product.is_accessory)
+        : (
+            product.categories?.name?.toLowerCase().includes('accessor') || 
+            categories.find(c => c.id === product.category_id)?.name?.toLowerCase().includes('accessor') ||
+            product.name?.toLowerCase().includes('accessory') ||
+            product.name?.toLowerCase().includes('case') ||
+            product.name?.toLowerCase().includes('cable') ||
+            product.name?.toLowerCase().includes('charger')
+          );
+      const isOnSale = (product.old_price && Number(product.old_price) > Number(product.price)) || false;
+
+      const isBestSeller = (product.is_best_seller !== undefined && product.is_best_seller !== null)
+        ? Boolean(product.is_best_seller)
+        : false;
+
+      const cleanExistingBrand = (product.brand || '').trim();
       setFormData({
         name: product.name,
-        brand: product.brand || '',
+        brand: ['accessories', 'accessory', 'jayliam'].includes(cleanExistingBrand.toLowerCase()) ? '' : cleanExistingBrand,
         category_id: product.category_id || '',
         description: product.description || '',
         short_description: product.short_description || '',
@@ -100,6 +180,9 @@ export default function AdminProducts() {
         sku: product.sku || '',
         stock_quantity: product.stock_quantity || 0,
         is_featured: product.is_featured || false,
+        is_accessory: Boolean(isAcc),
+        is_best_seller: Boolean(isBestSeller),
+        on_sale: Boolean(isOnSale),
         status: product.status || 'active'
       });
 
@@ -124,11 +207,78 @@ export default function AdminProducts() {
         sku: '',
         stock_quantity: 0,
         is_featured: false,
+        is_accessory: false,
+        is_best_seller: false,
+        on_sale: false,
         status: 'active'
       });
       setProductImages([]);
     }
     setIsModalOpen(true);
+  };
+
+  const syncBestSeller = async (productId: string, isBestSeller: boolean) => {
+    try {
+      if (isBestSeller) {
+        const { data: existing } = await supabase
+          .from('best_seller_products')
+          .select('id')
+          .eq('product_id', productId)
+          .limit(1);
+        if (!existing || existing.length === 0) {
+          await supabase
+            .from('best_seller_products')
+            .insert([{ product_id: productId, display_order: 0 }]);
+        }
+        await supabase
+          .from('best_sellers_config')
+          .update({ is_active: true, mode: 'manual' })
+          .neq('id', '00000000-0000-0000-0000-000000000000');
+      } else {
+        await supabase
+          .from('best_seller_products')
+          .delete()
+          .eq('product_id', productId);
+      }
+    } catch (e) {
+      console.warn('best_seller_products sync notice:', e);
+    }
+
+    try {
+      const stored = localStorage.getItem('jayliam_best_sellers_ids');
+      let idSet = new Set<string>();
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) idSet = new Set(parsed);
+        } catch (e) {}
+      }
+      if (isBestSeller) {
+        idSet.add(productId);
+      } else {
+        idSet.delete(productId);
+      }
+      localStorage.setItem('jayliam_best_sellers_ids', JSON.stringify(Array.from(idSet)));
+    } catch (e) {}
+  };
+
+  const handleToggleBestSeller = async (product: any, e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    const newStatus = !product.is_best_seller;
+
+    // Optimistically update products state
+    setProducts(prev => prev.map(p => p.id === product.id ? { ...p, is_best_seller: newStatus } : p));
+
+    // Try updating product column
+    try {
+      await supabase.from('products').update({ is_best_seller: newStatus }).eq('id', product.id);
+    } catch (err) {}
+
+    // Sync best seller table and localStorage
+    await syncBestSeller(product.id, newStatus);
   };
 
   const handleCloseModal = () => {
@@ -141,33 +291,109 @@ export default function AdminProducts() {
     const { name, value, type } = e.target as any;
     
     if (type === 'checkbox') {
-      setFormData({ ...formData, [name]: (e.target as HTMLInputElement).checked });
+      const checked = (e.target as HTMLInputElement).checked;
+      
+      if (name === 'is_accessory') {
+        const accCat = categories.find((c: any) => 
+          c.name?.toLowerCase().includes('accessor') || c.slug === 'accessories'
+        );
+        setFormData(prev => ({
+          ...prev,
+          is_accessory: checked,
+          category_id: checked && accCat ? accCat.id : prev.category_id
+        }));
+      } else {
+        setFormData(prev => ({ ...prev, [name]: checked }));
+      }
+    } else if (name === 'category_id') {
+      const selectedCat = categories.find((c: any) => c.id === value);
+      const isAcc = selectedCat?.name?.toLowerCase().includes('accessor') || selectedCat?.slug === 'accessories';
+      setFormData(prev => ({
+        ...prev,
+        category_id: value,
+        is_accessory: Boolean(isAcc)
+      }));
     } else if (type === 'number') {
-      setFormData({ ...formData, [name]: parseFloat(value) || 0 });
+      setFormData(prev => ({ ...prev, [name]: parseFloat(value) || 0 }));
     } else {
-      setFormData({ ...formData, [name]: value });
+      setFormData(prev => ({ ...prev, [name]: value }));
     }
   };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      let finalCategoryId = formData.category_id;
+      if (formData.is_accessory) {
+        const accCat = categories.find((c: any) => 
+          c.name?.toLowerCase().includes('accessor') || c.slug === 'accessories'
+        );
+        if (accCat) {
+          finalCategoryId = accCat.id;
+        }
+      }
+
+      // Database payload - Accessories is a category, NOT a brand
+      let finalBrand = formData.brand?.trim() || '';
+      if (['accessories', 'accessory', 'jayliam'].includes(finalBrand.toLowerCase())) {
+        finalBrand = '';
+      }
+
+      const payload: any = {
+        name: formData.name.trim(),
+        brand: finalBrand,
+        category_id: finalCategoryId || null,
+        description: formData.description || '',
+        short_description: formData.short_description || '',
+        price: Number(formData.price) || 0,
+        old_price: Number(formData.old_price) || 0,
+        sku: formData.sku?.trim() || '',
+        stock_quantity: Number(formData.stock_quantity) || 0,
+        is_featured: Boolean(formData.is_featured),
+        is_accessory: Boolean(formData.is_accessory),
+        is_best_seller: Boolean(formData.is_best_seller),
+        status: formData.status || 'active'
+      };
+
       let productId = editingId;
 
-      if (editingId) {
-        const { error } = await supabase
-          .from('products')
-          .update({ ...formData, updated_at: new Date().toISOString() })
-          .eq('id', editingId);
-        if (error) throw error;
-      } else {
-        const { data, error } = await supabase
-          .from('products')
-          .insert([formData])
-          .select()
-          .single();
-        if (error) throw error;
-        productId = data.id;
+      const performSave = async (dataPayload: any) => {
+        if (editingId) {
+          return await supabase
+            .from('products')
+            .update({ ...dataPayload, updated_at: new Date().toISOString() })
+            .eq('id', editingId);
+        } else {
+          return await supabase
+            .from('products')
+            .insert([dataPayload])
+            .select()
+            .single();
+        }
+      };
+
+      let result = await performSave(payload);
+
+      // If is_best_seller or is_accessory columns haven't been added via SQL yet, retry safely without them
+      if (result.error && (result.error.message?.includes('is_best_seller') || result.error.message?.includes('is_accessory') || result.error.code === 'PGRST204')) {
+        const fallbackPayload = { ...payload };
+        if (result.error.message?.includes('is_best_seller') || result.error.code === 'PGRST204') {
+          delete fallbackPayload.is_best_seller;
+        }
+        if (result.error.message?.includes('is_accessory')) {
+          delete fallbackPayload.is_accessory;
+        }
+        result = await performSave(fallbackPayload);
+      }
+
+      if (result.error) throw result.error;
+      if (!editingId && result.data) {
+        productId = result.data.id;
+      }
+      
+      const targetId = editingId || productId;
+      if (targetId) {
+        await syncBestSeller(targetId, Boolean(formData.is_best_seller));
       }
       
       handleCloseModal();
@@ -212,6 +438,33 @@ export default function AdminProducts() {
         console.error('Error in bulk action:', error);
       }
       alert('An error occurred during bulk action.');
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
+  const handleBulkBestSeller = async (markAsBestSeller: boolean) => {
+    if (selectedProducts.length === 0) return;
+    try {
+      setBulkActionLoading(true);
+      // Optimistically update products state
+      setProducts(prev => prev.map(p => selectedProducts.includes(p.id) ? { ...p, is_best_seller: markAsBestSeller } : p));
+
+      // Attempt DB update
+      try {
+        await supabase.from('products').update({ is_best_seller: markAsBestSeller }).in('id', selectedProducts);
+      } catch (e) {}
+
+      // Sync best seller tables and local storage for each
+      for (const id of selectedProducts) {
+        await syncBestSeller(id, markAsBestSeller);
+      }
+
+      setSelectedProducts([]);
+      fetchData();
+    } catch (error) {
+      console.error('Error in bulk best seller update:', error);
+      alert('An error occurred during best seller update.');
     } finally {
       setBulkActionLoading(false);
     }
@@ -366,8 +619,14 @@ export default function AdminProducts() {
     if (stockFilter === 'out') matchesStock = p.stock_quantity === 0;
     else if (stockFilter === 'low') matchesStock = p.stock_quantity > 0 && p.stock_quantity <= 5;
     else if (stockFilter === 'in') matchesStock = p.stock_quantity > 5;
+
+    let matchesBadge = true;
+    if (badgeFilter === 'best_seller') matchesBadge = Boolean(p.is_best_seller);
+    else if (badgeFilter === 'featured') matchesBadge = Boolean(p.is_featured);
+    else if (badgeFilter === 'accessory') matchesBadge = Boolean(p.is_accessory);
+    else if (badgeFilter === 'sale') matchesBadge = Boolean(p.old_price && Number(p.old_price) > Number(p.price));
     
-    return matchesSearch && matchesCategory && matchesBrand && matchesStatus && matchesStock;
+    return matchesSearch && matchesCategory && matchesBrand && matchesStatus && matchesStock && matchesBadge;
   });
 
   if (loading && products.length === 0) {
@@ -424,6 +683,13 @@ export default function AdminProducts() {
             <option value="all">All Brands</option>
             {brands.map((b, bIdx) => (<option key={b.id || `brand-opt-${bIdx}`} value={b.name}>{b.name}</option>))}
           </select>
+          <select value={badgeFilter} onChange={(e) => setBadgeFilter(e.target.value)} className="w-full sm:w-auto px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#087FF5] text-xs sm:text-sm">
+            <option value="all">All Highlights</option>
+            <option value="best_seller">🔥 Best Sellers</option>
+            <option value="featured">⭐ Featured</option>
+            <option value="accessory">🎧 Accessories</option>
+            <option value="sale">🏷️ On Sale</option>
+          </select>
           <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="w-full sm:w-auto px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#087FF5] text-xs sm:text-sm">
             <option value="all">All Status</option>
             <option value="active">Active</option>
@@ -446,6 +712,21 @@ export default function AdminProducts() {
         <span className="font-medium">{selectedProducts.length} selected</span>
       </div>
       <div className="flex flex-wrap items-center gap-2">
+        <button 
+          onClick={() => handleBulkBestSeller(true)} 
+          disabled={bulkActionLoading} 
+          className="text-xs font-semibold px-3 py-1.5 bg-orange-50 border border-orange-200 rounded text-orange-700 hover:bg-orange-100 transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+        >
+          <Flame size={13} className="fill-orange-600 text-orange-600" />
+          Mark as Best Seller
+        </button>
+        <button 
+          onClick={() => handleBulkBestSeller(false)} 
+          disabled={bulkActionLoading} 
+          className="text-xs font-medium px-3 py-1.5 bg-white border border-slate-200 rounded text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer disabled:opacity-50"
+        >
+          Remove Best Seller
+        </button>
         <button onClick={() => setIsBulkEditModalOpen(true)} className="text-xs font-medium px-4 py-1.5 bg-white border border-[#E5EAF2] rounded text-[#082B52] hover:bg-slate-50 transition-colors">Bulk Actions ▼</button>
         <button onClick={() => handleBulkAction('delete')} disabled={bulkActionLoading} className="text-xs font-medium px-3 py-1.5 bg-red-50 border border-red-200 rounded text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50">Delete Selected</button>
       </div>
@@ -461,7 +742,7 @@ export default function AdminProducts() {
                 <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Category</th>
                 <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Price</th>
                 <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Stock</th>
-                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status & Highlights</th>
                 <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Actions</th>
               </tr>
             </thead>
@@ -499,16 +780,49 @@ export default function AdminProducts() {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      product.status === 'active' ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-800'
-                    }`}>
-                      {product.status}
-                    </span>
-                    {product.is_featured && (
-                      <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                        Featured
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        product.status === 'active' ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-800'
+                      }`}>
+                        {product.status}
                       </span>
-                    )}
+                      {/* Best Seller Checkbox Button */}
+                      <button
+                        type="button"
+                        onClick={(e) => handleToggleBestSeller(product, e)}
+                        title={product.is_best_seller ? 'Best Seller on Home Page - Click to remove' : 'Click to feature in Best Sellers on Home Page'}
+                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold transition-all border cursor-pointer ${
+                          product.is_best_seller
+                            ? 'bg-orange-500 text-white border-orange-600 shadow-xs hover:bg-orange-600'
+                            : 'bg-white text-slate-600 border-slate-200 hover:border-orange-300 hover:text-orange-600 hover:bg-orange-50/50'
+                        }`}
+                      >
+                        <Flame size={11} className={product.is_best_seller ? 'text-white fill-white' : 'text-slate-400'} />
+                        <span>{product.is_best_seller ? 'Best Seller' : '+ Best Seller'}</span>
+                      </button>
+                      {product.is_featured && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-800">
+                          <Sparkles size={11} className="text-purple-600" />
+                          Featured
+                        </span>
+                      )}
+                      {(product.categories?.name?.toLowerCase().includes('accessor') || 
+                        product.name?.toLowerCase().includes('accessory') ||
+                        product.name?.toLowerCase().includes('charger') ||
+                        product.name?.toLowerCase().includes('cable') ||
+                        product.name?.toLowerCase().includes('case')) && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
+                          <Headphones size={11} className="text-emerald-600" />
+                          Accessory
+                        </span>
+                      )}
+                      {product.old_price && Number(product.old_price) > Number(product.price) && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
+                          <Tag size={10} className="text-amber-600" />
+                          Sale
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <button 
@@ -676,33 +990,150 @@ export default function AdminProducts() {
                   </div>
                 </div>
 
-                {/* Status & Options */}
+                {/* Status & Classification Options */}
                 <div>
-                  <h3 className="text-lg font-semibold text-slate-800 mb-4 border-b pb-2">Status & Options</h3>
-                  <div className="flex gap-8">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
-                      <select
-                        name="status"
-                        value={formData.status}
-                        onChange={handleInputChange}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#087FF5]"
+                  <h3 className="text-lg font-semibold text-slate-800 mb-4 border-b pb-2">Status & Classification Badges</h3>
+                  
+                  <div className="mb-5 max-w-xs">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Product Status</label>
+                    <select
+                      name="status"
+                      value={formData.status}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#087FF5] bg-white text-sm"
+                    >
+                      <option value="active">Active (Visible in Store)</option>
+                      <option value="inactive">Inactive (Hidden from Customers)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-800 mb-1.5">
+                      Product Badges & Options
+                    </label>
+                    <p className="text-xs text-slate-500 mb-3">
+                      Select checkboxes to classify and highlight this product across the store:
+                    </p>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                      {/* Best Seller Checkbox */}
+                      <label 
+                        htmlFor="is_best_seller" 
+                        className={`relative flex items-start p-3.5 rounded-xl border-2 cursor-pointer transition-all ${
+                          formData.is_best_seller 
+                            ? 'border-orange-500 bg-orange-50/70 shadow-sm' 
+                            : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                        }`}
                       >
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                      </select>
-                    </div>
-                    <div className="flex items-center mt-6">
-                      <input
-                        type="checkbox"
-                        id="is_featured"
-                        name="is_featured"
-                        checked={formData.is_featured}
-                        onChange={handleInputChange}
-                        className="h-5 w-5 rounded border-slate-300 text-[#087FF5] focus:ring-[#087FF5]"
-                      />
-                      <label htmlFor="is_featured" className="ml-2 block text-sm font-medium text-slate-700">
-                        Featured Product (Show on homepage)
+                        <div className="flex items-center h-5 mt-0.5">
+                          <input
+                            type="checkbox"
+                            id="is_best_seller"
+                            name="is_best_seller"
+                            checked={formData.is_best_seller}
+                            onChange={handleInputChange}
+                            className="h-4.5 w-4.5 rounded border-slate-300 text-orange-600 focus:ring-orange-500 cursor-pointer"
+                          />
+                        </div>
+                        <div className="ml-3 text-left">
+                          <div className="flex items-center gap-1.5 font-bold text-sm text-[#082B52]">
+                            <Flame size={16} className={formData.is_best_seller ? 'text-orange-600 fill-orange-500' : 'text-slate-400'} />
+                            <span>Best Seller</span>
+                          </div>
+                          <p className="text-xs text-slate-500 mt-1 leading-snug">
+                            Feature in "OUR BEST SELLING PRODUCTS" section on the homepage
+                          </p>
+                        </div>
+                      </label>
+
+                      {/* Featured Product Checkbox */}
+                      <label 
+                        htmlFor="is_featured" 
+                        className={`relative flex items-start p-3.5 rounded-xl border-2 cursor-pointer transition-all ${
+                          formData.is_featured 
+                            ? 'border-[#087FF5] bg-[#F4F9FF] shadow-sm' 
+                            : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-center h-5 mt-0.5">
+                          <input
+                            type="checkbox"
+                            id="is_featured"
+                            name="is_featured"
+                            checked={formData.is_featured}
+                            onChange={handleInputChange}
+                            className="h-4.5 w-4.5 rounded border-slate-300 text-[#087FF5] focus:ring-[#087FF5] cursor-pointer"
+                          />
+                        </div>
+                        <div className="ml-3 text-left">
+                          <div className="flex items-center gap-1.5 font-bold text-sm text-[#082B52]">
+                            <Sparkles size={16} className={formData.is_featured ? 'text-[#087FF5]' : 'text-slate-400'} />
+                            <span>Featured Product</span>
+                          </div>
+                          <p className="text-xs text-slate-500 mt-1 leading-snug">
+                            Showcase in homepage highlights and promotional banners
+                          </p>
+                        </div>
+                      </label>
+
+                      {/* Accessories Checkbox */}
+                      <label 
+                        htmlFor="is_accessory" 
+                        className={`relative flex items-start p-3.5 rounded-xl border-2 cursor-pointer transition-all ${
+                          formData.is_accessory 
+                            ? 'border-emerald-500 bg-emerald-50/70 shadow-sm' 
+                            : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-center h-5 mt-0.5">
+                          <input
+                            type="checkbox"
+                            id="is_accessory"
+                            name="is_accessory"
+                            checked={formData.is_accessory}
+                            onChange={handleInputChange}
+                            className="h-4.5 w-4.5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                          />
+                        </div>
+                        <div className="ml-3 text-left">
+                          <div className="flex items-center gap-1.5 font-bold text-sm text-[#082B52]">
+                            <Headphones size={16} className={formData.is_accessory ? 'text-emerald-600' : 'text-slate-400'} />
+                            <span>Accessories</span>
+                          </div>
+                          <p className="text-xs text-slate-500 mt-1 leading-snug">
+                            Classify as accessory (chargers, cables, cases, adapters, audio)
+                          </p>
+                        </div>
+                      </label>
+
+                      {/* On Sale / Promotion Checkbox */}
+                      <label 
+                        htmlFor="on_sale" 
+                        className={`relative flex items-start p-3.5 rounded-xl border-2 cursor-pointer transition-all ${
+                          formData.on_sale 
+                            ? 'border-amber-500 bg-amber-50/70 shadow-sm' 
+                            : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-center h-5 mt-0.5">
+                          <input
+                            type="checkbox"
+                            id="on_sale"
+                            name="on_sale"
+                            checked={formData.on_sale}
+                            onChange={handleInputChange}
+                            className="h-4.5 w-4.5 rounded border-slate-300 text-amber-600 focus:ring-amber-500 cursor-pointer"
+                          />
+                        </div>
+                        <div className="ml-3 text-left">
+                          <div className="flex items-center gap-1.5 font-bold text-sm text-[#082B52]">
+                            <Tag size={16} className={formData.on_sale ? 'text-amber-600' : 'text-slate-400'} />
+                            <span>On Sale / Offer</span>
+                          </div>
+                          <p className="text-xs text-slate-500 mt-1 leading-snug">
+                            Display discount badge comparing current price with regular price
+                          </p>
+                        </div>
                       </label>
                     </div>
                   </div>

@@ -30,6 +30,7 @@ export default function ProductDetails() {
           .from('products')
           .select(`
             *,
+            categories (id, name, slug),
             product_images (image_url, is_primary)
           `)
           .eq('id', id)
@@ -40,9 +41,25 @@ export default function ProductDetails() {
             || data.product_images?.[0]?.image_url 
             || '';
 
+          const isAccessory = Boolean(
+            data.is_accessory || 
+            data.categories?.name?.toLowerCase().includes('accessor') || 
+            data.categories?.slug === 'accessories' ||
+            data.name?.toLowerCase().includes('charger') ||
+            data.name?.toLowerCase().includes('cable') ||
+            data.name?.toLowerCase().includes('case') ||
+            data.name?.toLowerCase().includes('adapter') ||
+            data.name?.toLowerCase().includes('protector')
+          );
+
+          let cleanBrand = (data.brand || '').trim();
+          if (cleanBrand.toLowerCase() === 'jayliam' || cleanBrand.toLowerCase() === 'accessories' || cleanBrand.toLowerCase() === 'accessory') {
+            cleanBrand = '';
+          }
+
           setProduct({
             id: data.id,
-            brand: data.brand || 'JAYLIAM',
+            brand: cleanBrand,
             name: data.name,
             spec: data.short_description || data.description || '',
             price: data.price,
@@ -51,7 +68,9 @@ export default function ProductDetails() {
             availability: data.stock_quantity > 10 ? 'In Stock' : data.stock_quantity > 0 ? 'Low Stock' : 'Out of Stock',
             imageUrl: primaryImage,
             categoryId: data.category_id,
-            isFeatured: data.is_featured
+            categoryName: data.categories?.name || (isAccessory ? 'Accessories' : ''),
+            isFeatured: data.is_featured,
+            isAccessory: isAccessory
           });
           setLoading(false);
           return;
@@ -142,7 +161,9 @@ export default function ProductDetails() {
           {/* Product Details Area */}
           <div className="w-full md:w-1/2 flex flex-col py-1 sm:py-2 lg:py-4">
             <div className="mb-3 flex flex-wrap items-center gap-2 sm:gap-3">
-              <span className="text-[11px] sm:text-[12px] font-bold text-[#087FF5] tracking-widest uppercase bg-blue-50 px-2.5 py-0.5 rounded">{product.brand}</span>
+              <span className="text-[11px] sm:text-[12px] font-bold text-[#087FF5] tracking-widest uppercase bg-blue-50 px-2.5 py-0.5 rounded">
+                {product.brand ? product.brand : (product.categoryName || 'TECH')}
+              </span>
               <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">SKU: {product.id.slice(0, 8)}</span>
             </div>
             
@@ -196,19 +217,19 @@ export default function ProductDetails() {
               </button>
             </div>
             
-            <div className="mt-6 sm:mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-              <div className="flex items-start gap-3 p-3.5 sm:p-4 bg-[#F8FAFC] rounded-xl border border-slate-100">
-                <Shield size={18} className="text-[#087FF5] mt-0.5 shrink-0" strokeWidth={2} />
+            <div className="mt-6 sm:mt-8 grid grid-cols-2 gap-2.5 sm:gap-4">
+              <div className="flex items-center gap-2.5 sm:gap-3 p-3 sm:p-4 bg-[#F8FAFC] rounded-xl border border-slate-100">
+                <Shield size={18} className="text-[#087FF5] shrink-0" strokeWidth={2} />
                 <div>
-                  <h4 className="text-[13px] font-bold text-slate-900 mb-0.5">Warranty Included</h4>
-                  <p className="text-[12px] text-slate-500">1 Year Official Brand Warranty</p>
+                  <h4 className="text-[12px] sm:text-[13px] font-bold text-slate-900 leading-tight">Warranty Included</h4>
+                  <p className="text-[11px] sm:text-[12px] text-slate-500 mt-0.5">1 Year Official Brand Warranty</p>
                 </div>
               </div>
-              <div className="flex items-start gap-3 p-3.5 sm:p-4 bg-[#F8FAFC] rounded-xl border border-slate-100">
-                <Truck size={18} className="text-[#087FF5] mt-0.5 shrink-0" strokeWidth={2} />
+              <div className="flex items-center gap-2.5 sm:gap-3 p-3 sm:p-4 bg-[#F8FAFC] rounded-xl border border-slate-100">
+                <Truck size={18} className="text-[#087FF5] shrink-0" strokeWidth={2} />
                 <div>
-                  <h4 className="text-[13px] font-bold text-slate-900 mb-0.5">Fast Delivery</h4>
-                  <p className="text-[12px] text-slate-500">Same-day delivery across Nairobi</p>
+                  <h4 className="text-[12px] sm:text-[13px] font-bold text-slate-900 leading-tight">Fast Delivery</h4>
+                  <p className="text-[11px] sm:text-[12px] text-slate-500 mt-0.5">Same-day across Nairobi</p>
                 </div>
               </div>
             </div>

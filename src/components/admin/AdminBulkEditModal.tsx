@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Save, AlertCircle } from 'lucide-react';
+import { X, Save, AlertCircle, Flame } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 export default function AdminBulkEditModal({
@@ -31,7 +31,9 @@ export default function AdminBulkEditModal({
     stock: 0,
     updatePrice: false,
     priceAction: 'set', // 'set', 'increase', 'decrease'
-    priceValue: 0
+    priceValue: 0,
+    updateBestSeller: false,
+    bestSellerValue: true
   });
 
   if (!isOpen) return null;
@@ -54,6 +56,7 @@ export default function AdminBulkEditModal({
       if (updateFields.updateBrand) staticUpdates.brand = updateFields.brandName;
       if (updateFields.updateStatus) staticUpdates.status = updateFields.status;
       if (updateFields.updateStock) staticUpdates.stock_quantity = updateFields.stock;
+      if (updateFields.updateBestSeller) staticUpdates.is_best_seller = updateFields.bestSellerValue;
       
       if (updateFields.updatePrice && updateFields.priceAction === 'set') {
         staticUpdates.price = updateFields.priceValue;
@@ -61,7 +64,13 @@ export default function AdminBulkEditModal({
       
       // If no relative updates, do one massive update
       if (Object.keys(staticUpdates).length > 0 && !(updateFields.updatePrice && updateFields.priceAction !== 'set')) {
-        const { error: updateErr } = await supabase.from('products').update(staticUpdates).in('id', selectedProductIds);
+        let { error: updateErr } = await supabase.from('products').update(staticUpdates).in('id', selectedProductIds);
+        if (updateErr && (updateErr.message?.includes('is_best_seller') || updateErr.code === 'PGRST204')) {
+          const fallback = { ...staticUpdates };
+          delete fallback.is_best_seller;
+          const res = await supabase.from('products').update(fallback).in('id', selectedProductIds);
+          updateErr = res.error;
+        }
         if (updateErr) throw updateErr;
       } else if (updateFields.updatePrice && updateFields.priceAction !== 'set') {
         // We have to loop and update each product
@@ -75,10 +84,47 @@ export default function AdminBulkEditModal({
               updates.price = Math.round(pData.price * (1 - (updateFields.priceValue / 100)));
             }
           }
-          await supabase.from('products').update(updates).eq('id', pId);
+          let { error: updSingleErr } = await supabase.from('products').update(updates).eq('id', pId);
+          if (updSingleErr && (updSingleErr.message?.includes('is_best_seller') || updSingleErr.code === 'PGRST204')) {
+            const fallback = { ...updates };
+            delete fallback.is_best_seller;
+            await supabase.from('products').update(fallback).eq('id', pId);
+          }
         }
       } else if (Object.keys(staticUpdates).length === 0) {
         return; // Nothing to update
+      }
+
+      // Sync best seller tables and local storage if updateBestSeller was checked
+      if (updateFields.updateBestSeller) {
+        try {
+          if (updateFields.bestSellerValue) {
+            for (let i = 0; i < selectedProductIds.length; i++) {
+              const pid = selectedProductIds[i];
+              await supabase.from('best_seller_products').upsert([{ product_id: pid, display_order: i }]);
+            }
+            await supabase.from('best_sellers_config').update({ is_active: true, mode: 'manual' }).neq('id', '00000000-0000-0000-0000-000000000000');
+          } else {
+            await supabase.from('best_seller_products').delete().in('product_id', selectedProductIds);
+          }
+        } catch (e) {}
+
+        try {
+          const stored = localStorage.getItem('jayliam_best_sellers_ids');
+          let idSet = new Set<string>();
+          if (stored) {
+            try {
+              const parsed = JSON.parse(stored);
+              if (Array.isArray(parsed)) idSet = new Set(parsed);
+            } catch (e) {}
+          }
+          if (updateFields.bestSellerValue) {
+            selectedProductIds.forEach(id => idSet.add(id));
+          } else {
+            selectedProductIds.forEach(id => idSet.delete(id));
+          }
+          localStorage.setItem('jayliam_best_sellers_ids', JSON.stringify(Array.from(idSet)));
+        } catch (e) {}
       }
 
       onSuccess();
@@ -179,6 +225,24 @@ export default function AdminBulkEditModal({
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
+            </div>
+          </div>
+          
+          {/* Best Seller Update */}
+          <div className="flex items-start gap-3">
+            <div className="pt-1">
+              <input type="checkbox" id="upd-bestseller" checked={updateFields.updateBestSeller} onChange={(e) => setUpdateFields({...updateFields, updateBestSeller: e.target.checked})} className="w-4 h-4 rounded text-orange-600 focus:ring-orange-500 cursor-pointer" />
+            </div>
+            <div className="flex-1">
+              <label htmlFor="upd-bestseller" className="font-medium text-slate-800 cursor-pointer block mb-2 flex items-center gap-1.5">
+                <Flame size={16} className="text-orange-600 fill-orange-500" />
+                <span>Update Best Seller Status</span>
+              </label>
+              <select disabled={!updateFields.updateBestSeller} value={updateFields.bestSellerValue ? 'yes' : 'no'} onChange={(e) => setUpdateFields({...updateFields, bestSellerValue: e.target.value === 'yes'})} className="w-full sm:w-1/2 px-3 py-2 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-[#087FF5] disabled:opacity-50 disabled:bg-slate-50 text-sm">
+                <option value="yes">🔥 Mark as Best Seller (Feature on Homepage)</option>
+                <option value="no">Remove from Best Sellers</option>
+              </select>
+              <p className="text-xs text-slate-500 mt-1">Controls whether these products appear in the "OUR BEST SELLING PRODUCTS" section on the homepage.</p>
             </div>
           </div>
           

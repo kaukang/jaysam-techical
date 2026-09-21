@@ -147,7 +147,7 @@ export default function AdminBrands() {
       }
     }
 
-    // Fetch product counts for each brand from active catalog
+    // Fetch product counts for each brand from active catalog (Accessories is a category, NOT a brand)
     const counts: Record<string, number> = {};
     const catalogBrandsSet = new Set<string>();
     try {
@@ -156,8 +156,10 @@ export default function AdminBrands() {
         productsData.forEach(p => {
           if (p.brand) {
             const b = p.brand.trim().toLowerCase();
-            counts[b] = (counts[b] || 0) + 1;
-            catalogBrandsSet.add(p.brand.trim());
+            if (!['accessories', 'accessory', 'jayliam', 'jayliamtech'].includes(b)) {
+              counts[b] = (counts[b] || 0) + 1;
+              catalogBrandsSet.add(p.brand.trim());
+            }
           }
         });
       }
@@ -165,16 +167,23 @@ export default function AdminBrands() {
       console.warn('Error fetching products for brand counts:', pErr);
     }
 
-    // Retrieve locally synchronized brand logos/custom additions
-    const storedCustomBrands = getCustomBrandsFromStorage();
+    // Retrieve locally synchronized brand logos/custom additions and clean any 'accessories'
+    const rawStored = getCustomBrandsFromStorage();
+    const storedCustomBrands = rawStored.filter((cb: any) => {
+      const k = normalizeBrandKey(cb);
+      return !['accessories', 'accessory', 'jayliam', 'jayliamtech'].includes(k);
+    });
+    if (storedCustomBrands.length !== rawStored.length) {
+      saveCustomBrandsToStorage(storedCustomBrands);
+    }
 
     // Consolidate list starting with Supabase brands or stored custom brands
     const consolidatedMap = new Map<string, any>();
 
-    // 1. Add Supabase brands
+    // 1. Add Supabase brands (filter out accessories and jayliam)
     supabaseBrands.forEach(b => {
       const key = normalizeBrandKey(b);
-      if (key) {
+      if (key && !['accessories', 'accessory', 'jayliam', 'jayliamtech'].includes(key)) {
         consolidatedMap.set(key, { ...b });
       }
     });
@@ -182,7 +191,7 @@ export default function AdminBrands() {
     // 2. Overlay any local stored brand updates (like uploaded logos)
     storedCustomBrands.forEach(cb => {
       const key = normalizeBrandKey(cb);
-      if (key) {
+      if (key && !['accessories', 'accessory', 'jayliam', 'jayliamtech'].includes(key)) {
         const existing = consolidatedMap.get(key) || {};
         consolidatedMap.set(key, {
           ...existing,
@@ -198,7 +207,7 @@ export default function AdminBrands() {
     // 3. Add any brands from active products not yet in the list
     Array.from(catalogBrandsSet).forEach(bName => {
       const key = normalizeBrandKey({ name: bName });
-      if (key && !consolidatedMap.has(key)) {
+      if (key && !['accessories', 'accessory', 'jayliam', 'jayliamtech'].includes(key) && !consolidatedMap.has(key)) {
         const cleanSlug = key.replace(/[^a-z0-9]+/g, '-');
         consolidatedMap.set(key, {
           id: `product-brand-${cleanSlug}`,
@@ -214,7 +223,7 @@ export default function AdminBrands() {
     // 4. Ensure default trusted electronic brands exist
     DEFAULT_STORE_BRANDS.forEach((def, idx) => {
       const key = normalizeBrandKey(def);
-      if (key && !consolidatedMap.has(key)) {
+      if (key && !['accessories', 'accessory', 'jayliam', 'jayliamtech'].includes(key) && !consolidatedMap.has(key)) {
         consolidatedMap.set(key, {
           id: `default-brand-${def.slug || key}`,
           name: def.name,
@@ -228,7 +237,14 @@ export default function AdminBrands() {
 
     // Map consolidated brands with accurate product count and guarantee unique IDs
     const seenRowIds = new Set<string>();
-    const finalList = Array.from(consolidatedMap.values()).map((brand, idx) => {
+    const finalList = Array.from(consolidatedMap.values())
+      .filter((brand: any) => {
+        const k = normalizeBrandKey(brand);
+        const nameLower = (brand.name || '').toLowerCase();
+        return !['accessories', 'accessory', 'jayliam', 'jayliamtech'].includes(k) &&
+               !['accessories', 'accessory', 'jayliam', 'jayliamtech'].includes(nameLower);
+      })
+      .map((brand, idx) => {
       const bKey = (brand.name || '').trim().toLowerCase();
       let uniqueId = String(brand.id || `brand-${brand.slug || idx}`).trim();
       if (seenRowIds.has(uniqueId)) {
@@ -479,6 +495,18 @@ export default function AdminBrands() {
     setUploading(true);
 
     try {
+      const brandNameTrimmed = formData.name.trim();
+      if (['accessories', 'accessory'].includes(brandNameTrimmed.toLowerCase())) {
+        showToast('Accessories is a product category, not a brand. Please manage it under Categories.', 'error');
+        setUploading(false);
+        return;
+      }
+      if (['jayliam', 'jayliamtech'].includes(brandNameTrimmed.toLowerCase())) {
+        showToast('Jayliam is your store name, not a product brand.', 'error');
+        setUploading(false);
+        return;
+      }
+
       const cleanSlug = formData.slug || generateSlug(formData.name);
       const payload = {
         ...formData,

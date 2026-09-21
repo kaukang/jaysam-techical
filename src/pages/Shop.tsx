@@ -37,18 +37,40 @@ export default function Shop() {
         setCategories(catData.map(c => ({ id: c.id, name: c.name })));
       }
 
+      // Resolve category filter (handles both UUIDs and slugs like 'accessories')
+      let resolvedCategoryId = categoryId;
+      let isAccessoryFilter = false;
+      if (categoryId) {
+        const catMatch = catData?.find((c: any) => 
+          c.id === categoryId || 
+          c.slug?.toLowerCase() === categoryId.toLowerCase() || 
+          c.name?.toLowerCase() === categoryId.toLowerCase()
+        );
+        if (catMatch) {
+          resolvedCategoryId = catMatch.id;
+          if (catMatch.slug === 'accessories' || catMatch.name?.toLowerCase().includes('accessor')) {
+            isAccessoryFilter = true;
+          }
+        } else if (categoryId.toLowerCase() === 'accessories') {
+          isAccessoryFilter = true;
+        }
+      }
+
       // Fetch products from Supabase
       let query = supabase
         .from('products')
         .select(`
           *,
+          categories (id, name, slug),
           product_images (image_url, is_primary)
         `)
         .eq('status', 'active')
         .order('created_at', { ascending: false });
 
-      if (categoryId) {
-        query = query.eq('category_id', categoryId);
+      if (isAccessoryFilter) {
+        query = query.or(`category_id.eq.${resolvedCategoryId},is_accessory.eq.true`);
+      } else if (resolvedCategoryId) {
+        query = query.eq('category_id', resolvedCategoryId);
       }
       if (brandQuery) {
         query = query.ilike('brand', brandQuery);
@@ -66,9 +88,25 @@ export default function Shop() {
             || p.product_images?.[0]?.image_url 
             || '';
 
+          const isAccessory = Boolean(
+            p.is_accessory || 
+            p.categories?.name?.toLowerCase().includes('accessor') || 
+            p.categories?.slug === 'accessories' ||
+            p.name?.toLowerCase().includes('charger') ||
+            p.name?.toLowerCase().includes('cable') ||
+            p.name?.toLowerCase().includes('case') ||
+            p.name?.toLowerCase().includes('adapter') ||
+            p.name?.toLowerCase().includes('protector')
+          );
+
+          let cleanBrand = (p.brand || '').trim();
+          if (cleanBrand.toLowerCase() === 'jayliam' || cleanBrand.toLowerCase() === 'accessories' || cleanBrand.toLowerCase() === 'accessory') {
+            cleanBrand = '';
+          }
+
           return {
             id: p.id,
-            brand: p.brand || 'JAYLIAM',
+            brand: cleanBrand,
             name: p.name,
             spec: p.short_description || '',
             price: p.price,
@@ -77,7 +115,9 @@ export default function Shop() {
             availability: p.stock_quantity > 10 ? 'In Stock' : p.stock_quantity > 0 ? 'Low Stock' : 'Out of Stock',
             imageUrl: primaryImage,
             categoryId: p.category_id,
-            isFeatured: p.is_featured
+            categoryName: p.categories?.name || (isAccessory ? 'Accessories' : ''),
+            isFeatured: p.is_featured,
+            isAccessory: isAccessory
           };
         });
 

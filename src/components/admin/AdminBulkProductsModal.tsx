@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { X, Upload, Plus, Trash2, AlertCircle, CheckCircle2, Download } from 'lucide-react';
+import { X, Upload, Plus, Trash2, AlertCircle, CheckCircle2, Download, Flame } from 'lucide-react';
 
 export default function AdminBulkProductsModal({ 
   isOpen, 
@@ -21,7 +21,7 @@ export default function AdminBulkProductsModal({
   
   // Form State
   const [formProducts, setFormProducts] = useState([
-    { name: '', brand: '', category_id: categories[0]?.id || '', sku: '', price: '', old_price: '', stock_quantity: '', description: '', status: 'active' }
+    { name: '', brand: '', category_id: categories[0]?.id || '', sku: '', price: '', old_price: '', stock_quantity: '', description: '', status: 'active', is_featured: false, is_accessory: false, is_best_seller: false }
   ]);
   const [savingForm, setSavingForm] = useState(false);
 
@@ -66,7 +66,7 @@ export default function AdminBulkProductsModal({
   const handleAddFormRow = () => {
     setFormProducts([
       ...formProducts, 
-      { name: '', brand: '', category_id: categories[0]?.id || '', sku: '', price: '', old_price: '', stock_quantity: '', description: '', status: 'active' }
+      { name: '', brand: '', category_id: categories[0]?.id || '', sku: '', price: '', old_price: '', stock_quantity: '', description: '', status: 'active', is_featured: false, is_accessory: false, is_best_seller: false }
     ]);
   };
 
@@ -128,23 +128,83 @@ export default function AdminBulkProductsModal({
         errors.push(`Row ${i + 1} (${filledProducts[i].name}): ${error}`);
         failedCount++;
       } else {
+        const item = filledProducts[i];
+        let catId = item.category_id || categories[0]?.id;
+        if (item.is_accessory) {
+          const accCat = categories.find(c => c.name?.toLowerCase().includes('accessor') || c.slug === 'accessories');
+          if (accCat) catId = accCat.id;
+        }
+
+        let finalBrand = item.brand?.trim() || '';
+        if (['accessories', 'accessory', 'jayliam'].includes(finalBrand.toLowerCase())) {
+          finalBrand = '';
+        }
+
         validProducts.push({
-          ...filledProducts[i],
-          price: parseFloat(filledProducts[i].price),
-          old_price: parseFloat(filledProducts[i].old_price) || 0,
-          stock_quantity: parseInt(filledProducts[i].stock_quantity),
-          is_featured: false
+          name: item.name.trim(),
+          brand: finalBrand,
+          category_id: catId,
+          sku: item.sku?.trim() || '',
+          description: item.description || '',
+          status: item.status || 'active',
+          price: parseFloat(item.price),
+          old_price: parseFloat(item.old_price) || 0,
+          stock_quantity: parseInt(item.stock_quantity),
+          is_featured: Boolean(item.is_featured),
+          is_accessory: Boolean(item.is_accessory),
+          is_best_seller: Boolean(item.is_best_seller)
         });
       }
     }
 
     if (validProducts.length > 0) {
-      const { error } = await supabase.from('products').insert(validProducts);
-      if (error) {
-        errors.push(`Database error: ${error.message}`);
+      let insertResult = await supabase.from('products').insert(validProducts).select();
+      
+      // If is_best_seller or is_accessory column doesn't exist yet, retry without them
+      if (insertResult.error && (insertResult.error.message?.includes('is_best_seller') || insertResult.error.message?.includes('is_accessory') || insertResult.error.code === 'PGRST204')) {
+        const fallbackProducts = validProducts.map(p => {
+          const copy = { ...p };
+          delete copy.is_best_seller;
+          delete copy.is_accessory;
+          return copy;
+        });
+        insertResult = await supabase.from('products').insert(fallbackProducts).select();
+      }
+
+      if (insertResult.error) {
+        errors.push(`Database error: ${insertResult.error.message}`);
         failedCount += validProducts.length;
       } else {
         successCount = validProducts.length;
+        
+        // Sync any products marked as best sellers
+        const insertedData = insertResult.data || [];
+        const bestSellerIds: string[] = [];
+        insertedData.forEach((p: any, idx: number) => {
+          if (validProducts[idx]?.is_best_seller && p.id) {
+            bestSellerIds.push(p.id);
+          }
+        });
+
+        if (bestSellerIds.length > 0) {
+          try {
+            const records = bestSellerIds.map((id, i) => ({ product_id: id, display_order: i }));
+            await supabase.from('best_seller_products').insert(records);
+          } catch (e) {}
+
+          try {
+            const stored = localStorage.getItem('jayliam_best_sellers_ids');
+            let idSet = new Set<string>();
+            if (stored) {
+              try {
+                const parsed = JSON.parse(stored);
+                if (Array.isArray(parsed)) idSet = new Set(parsed);
+              } catch (e) {}
+            }
+            bestSellerIds.forEach(id => idSet.add(id));
+            localStorage.setItem('jayliam_best_sellers_ids', JSON.stringify(Array.from(idSet)));
+          } catch (e) {}
+        }
       }
     }
 
@@ -479,6 +539,47 @@ export default function AdminBulkProductsModal({
                             className="w-full px-3 py-1.5 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-[#087FF5]"
                           />
                         </div>
+                      </div>
+
+                      {/* Product Checkboxes */}
+                      <div className="mt-3 pt-3 border-t border-slate-100 flex flex-wrap items-center gap-6">
+                        <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-700 hover:text-orange-600 transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(product.is_best_seller)}
+                            onChange={(e) => handleFormChange(index, 'is_best_seller', e.target.checked)}
+                            className="h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500 cursor-pointer"
+                          />
+                          <span className="flex items-center gap-1">
+                            <Flame size={13} className={product.is_best_seller ? 'text-orange-600 fill-orange-500' : 'text-slate-400'} />
+                            Best Seller
+                          </span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-700 hover:text-[#087FF5] transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(product.is_featured)}
+                            onChange={(e) => handleFormChange(index, 'is_featured', e.target.checked)}
+                            className="h-4 w-4 rounded border-slate-300 text-[#087FF5] focus:ring-[#087FF5] cursor-pointer"
+                          />
+                          <span>⭐ Featured Product</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-700 hover:text-emerald-600 transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(product.is_accessory)}
+                            onChange={(e) => {
+                              const checked = e.target.checked;
+                              const accCat = categories.find(c => c.name?.toLowerCase().includes('accessor') || c.slug === 'accessories');
+                              handleFormChange(index, 'is_accessory', checked);
+                              if (checked && accCat) {
+                                handleFormChange(index, 'category_id', accCat.id);
+                              }
+                            }}
+                            className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                          />
+                          <span>🎧 Accessories</span>
+                        </label>
                       </div>
                     </div>
                   ))}

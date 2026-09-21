@@ -1,6 +1,6 @@
 import React from 'react';
 import { Product } from '../types';
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingCart, Flame } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 
@@ -32,16 +32,20 @@ export default function ProductCard({ product }: ProductCardProps) {
           className="w-full h-full object-contain mix-blend-multiply group-hover:scale-[1.05] transition-transform duration-500 ease-out"
           loading="lazy"
         />
-        {product.availability === 'Low Stock' && (
+        {product.availability === 'Low Stock' ? (
           <span className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-[#102A43] text-white text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded tracking-wider uppercase z-10">
             Low Stock
           </span>
-        )}
-        {product.availability === 'Out of Stock' && (
+        ) : product.availability === 'Out of Stock' ? (
           <span className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-[#F8FAFC] text-[#64748B] border border-[#E5EAF2] text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded tracking-wider uppercase z-10">
             Sold Out
           </span>
-        )}
+        ) : product.isBestSeller ? (
+          <span className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded tracking-wider uppercase z-10 shadow-xs flex items-center gap-1">
+            <Flame size={10} className="fill-white" />
+            Best Seller
+          </span>
+        ) : null}
         <button 
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
           className="absolute top-2 right-2 sm:top-3 sm:right-3 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#F8FAFC]/90 backdrop-blur-xs flex items-center justify-center text-[#64748B] hover:text-red-500 hover:bg-red-50 transition-colors z-10"
@@ -53,7 +57,11 @@ export default function ProductCard({ product }: ProductCardProps) {
       
       <div className="p-3 sm:p-4 md:p-5 flex flex-col flex-grow bg-white border-t border-transparent group-hover:border-[#E5EAF2]/50 transition-colors">
         <div className="mb-2 sm:mb-3">
-          <p className="text-[9px] sm:text-[10px] text-[#64748B] font-bold tracking-[0.15em] sm:tracking-[0.2em] mb-1 sm:mb-1.5 uppercase truncate">{product.brand}</p>
+          <p className="text-[9px] sm:text-[10px] text-[#64748B] font-bold tracking-[0.15em] sm:tracking-[0.2em] mb-1 sm:mb-1.5 uppercase truncate">
+            {product.brand && !['jayliam', 'accessories', 'accessory'].includes(product.brand.toLowerCase())
+              ? product.brand
+              : (product.categoryName || (product.isAccessory ? 'ACCESSORIES' : 'TECH'))}
+          </p>
           <h3 className="text-[13px] sm:text-[14px] md:text-[15px] font-bold text-[#082B52] leading-snug group-hover:text-[#087FF5] transition-colors line-clamp-2 min-h-[2.5em]">{product.name}</h3>
           <p className="text-[11px] sm:text-[12px] text-[#64748B] mt-1 line-clamp-1">{product.spec}</p>
           <div className="flex items-center gap-0.5 sm:gap-1 mt-1.5 sm:mt-2">

@@ -28,6 +28,72 @@ const normalizeBrandKey = (item: any): string => {
   return bySlug || byName || byId;
 };
 
+// Category icon resolver supporting various keyword patterns
+const getCategoryIcon = (category: any) => {
+  const s = `${category?.slug || ''} ${category?.name || ''}`.toLowerCase();
+  if (s.includes('laptop') || s.includes('macbook') || s.includes('computer')) return Laptop;
+  if (s.includes('tablet') || s.includes('ipad')) return Monitor;
+  if (s.includes('watch') || s.includes('wearable')) return Watch;
+  if (s.includes('headphone') || s.includes('audio') || s.includes('earbud') || s.includes('sound')) return HeadphonesIcon;
+  if (s.includes('appliance') || s.includes('home')) return HomeIcon;
+  if (s.includes('repair') || s.includes('service') || s.includes('care')) return Check;
+  if (s.includes('game') || s.includes('gaming') || s.includes('console')) return Gamepad2;
+  if (s.includes('camera') || s.includes('photo')) return Camera;
+  if (s.includes('accessory') || s.includes('accessories') || s.includes('charger') || s.includes('cable')) return Headphones;
+  return Smartphone;
+};
+
+const defaultCategoriesList = [
+  { id: 'smartphones', name: 'Smartphones', slug: 'smartphones' },
+  { id: 'laptops', name: 'Laptops', slug: 'laptops' },
+  { id: 'tablets', name: 'Tablets', slug: 'tablets' },
+  { id: 'accessories', name: 'Accessories', slug: 'accessories' },
+  { id: 'smartwatches', name: 'Smartwatches', slug: 'smartwatches' },
+  { id: 'headphones', name: 'Headphones', slug: 'headphones' },
+  { id: 'appliances', name: 'Home Appliances', slug: 'appliances' },
+  { id: 'repairs', name: 'Phone Repairs', slug: 'repairs' },
+];
+
+function CategoryCard({ category, className = '' }: { category: any; key?: any; className?: string }) {
+  const [imgFailed, setImgFailed] = useState(false);
+  const Icon = getCategoryIcon(category);
+
+  return (
+    <Link 
+      to={`/shop?category=${category.id || category.slug || ''}`}
+      className={`group relative flex flex-col h-full bg-white rounded-2xl border border-slate-200/85 hover:border-[#087FF5]/40 shadow-[0_2px_10px_rgba(8,43,82,0.04)] hover:shadow-[0_16px_36px_rgba(8,43,82,0.11)] transition-all duration-300 overflow-hidden hover:-translate-y-1.5 focus:outline-none focus:ring-2 focus:ring-[#087FF5]/30 ${className}`}
+    >
+      {/* Equal-sized Visual Stage */}
+      <div className="w-full aspect-[4/3] bg-gradient-to-b from-[#F8FAFC] to-[#F1F5F9] group-hover:from-[#F0F7FF] group-hover:to-[#E1EFFF] flex items-center justify-center p-4 sm:p-5 relative overflow-hidden transition-colors duration-300">
+        {/* Soft Radial Ambient Spotlight on Hover */}
+        <div className="absolute inset-0 bg-radial from-[#087FF5]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+
+        {category.image_url && !imgFailed ? (
+          <img 
+            src={category.image_url} 
+            alt={category.name} 
+            referrerPolicy="no-referrer"
+            onError={() => setImgFailed(true)}
+            className="w-full h-full object-contain transition-transform duration-500 ease-out group-hover:scale-108" 
+            loading="lazy"
+          />
+        ) : (
+          <div className="w-13 h-13 sm:w-16 sm:h-16 rounded-2xl bg-white border border-slate-200/70 shadow-sm flex items-center justify-center text-[#082B52] group-hover:text-[#087FF5] group-hover:border-[#087FF5]/30 group-hover:shadow-md group-hover:scale-110 transition-all duration-300">
+            <Icon size={26} className="sm:w-7 sm:h-7" strokeWidth={1.6} />
+          </div>
+        )}
+      </div>
+
+      {/* Card Content */}
+      <div className="p-3 sm:p-3.5 w-full flex items-center justify-center text-center border-t border-slate-100 bg-white">
+        <h3 className="text-sm sm:text-[15px] font-bold text-[#082B52] group-hover:text-[#087FF5] transition-colors truncate w-full tracking-tight">
+          {category.name}
+        </h3>
+      </div>
+    </Link>
+  );
+}
+
 export default function Home() {
   const [newArrivals, setNewArrivals] = useState<Product[]>([]);
   const [popularProducts, setPopularProducts] = useState<Product[]>([]);
@@ -50,16 +116,26 @@ export default function Home() {
       return null;
     }
   });
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [categories, setCategories] = useState<any[]>([]);
 
-  const scrollCategories = (direction: 'left' | 'right') => {
-    if (scrollContainerRef.current) {
-      const scrollAmount = direction === 'left' ? -300 : 300;
-      scrollContainerRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+  const categoryScrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  const checkCategoryScroll = () => {
+    if (categoryScrollRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = categoryScrollRef.current;
+      setCanScrollLeft(scrollLeft > 10);
+      setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 10);
     }
   };
 
-  const [categories, setCategories] = useState<any[]>([]);
+  const scrollCategories = (direction: 'left' | 'right') => {
+    if (categoryScrollRef.current) {
+      const scrollAmount = direction === 'left' ? -360 : 360;
+      categoryScrollRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+  };
 
   const [brandsData, setBrandsData] = useState<any[]>([]);
   const [allProducts, setAllProducts] = useState<Product[]>([]);
@@ -106,6 +182,7 @@ export default function Home() {
         .from('products')
         .select(`
           *,
+          categories (id, name, slug),
           product_images (image_url, is_primary)
         `)
         .eq('status', 'active')
@@ -119,9 +196,25 @@ export default function Home() {
             || p.product_images?.[0]?.image_url 
             || '';
 
+          const isAccessory = Boolean(
+            p.is_accessory || 
+            p.categories?.name?.toLowerCase().includes('accessor') || 
+            p.categories?.slug === 'accessories' ||
+            p.name?.toLowerCase().includes('charger') ||
+            p.name?.toLowerCase().includes('cable') ||
+            p.name?.toLowerCase().includes('case') ||
+            p.name?.toLowerCase().includes('adapter') ||
+            p.name?.toLowerCase().includes('protector')
+          );
+
+          let cleanBrand = (p.brand || '').trim();
+          if (cleanBrand.toLowerCase() === 'jayliam' || cleanBrand.toLowerCase() === 'accessories' || cleanBrand.toLowerCase() === 'accessory') {
+            cleanBrand = '';
+          }
+
           return {
             id: p.id,
-            brand: p.brand || 'JAYLIAM',
+            brand: cleanBrand,
             name: p.name,
             spec: p.short_description || '',
             price: p.price,
@@ -130,7 +223,10 @@ export default function Home() {
             availability: p.stock_quantity > 10 ? 'In Stock' : p.stock_quantity > 0 ? 'Low Stock' : 'Out of Stock',
             imageUrl: primaryImage,
             categoryId: p.category_id,
-            isFeatured: p.is_featured
+            categoryName: p.categories?.name || (isAccessory ? 'Accessories' : ''),
+            isFeatured: p.is_featured,
+            isAccessory: isAccessory,
+            isBestSeller: Boolean(p.is_best_seller)
           };
         });
 
@@ -171,7 +267,7 @@ export default function Home() {
       // 1. First add Supabase brands (preserving existing IDs and configurations)
       (bData || []).forEach((b: any) => {
         const key = normalizeBrandKey(b);
-        if (key) {
+        if (key && key !== 'accessories' && key !== 'accessory' && key !== 'jayliam' && key !== 'jayliamtech') {
           brandMap.set(key, { ...b });
         }
       });
@@ -179,7 +275,7 @@ export default function Home() {
       // 2. Overlay any local custom/admin brand updates (e.g. uploaded logos & display order)
       customBrands.forEach((cb: any) => {
         const key = normalizeBrandKey(cb);
-        if (key) {
+        if (key && key !== 'accessories' && key !== 'accessory' && key !== 'jayliam' && key !== 'jayliamtech') {
           const existing = brandMap.get(key) || {};
           brandMap.set(key, {
             ...existing,
@@ -194,12 +290,12 @@ export default function Home() {
         }
       });
 
-      // 3. Add any brands from active products not yet in the map
+      // 3. Add any brands from active products not yet in the map (Accessories is a category, NOT a brand)
       if (mappedProducts.length > 0) {
         const productBrands = Array.from(new Set(mappedProducts.map(p => p.brand).filter(Boolean)));
         for (const pb of productBrands) {
           const key = normalizeBrandKey({ name: pb });
-          if (key && !brandMap.has(key)) {
+          if (key && key !== 'jayliam' && key !== 'jayliamtech' && key !== 'accessories' && key !== 'accessory' && !brandMap.has(key)) {
             const defMatch = DEFAULT_STORE_BRANDS.find(d => normalizeBrandKey(d) === key);
             brandMap.set(key, {
               id: `prod-brand-${key}`,
@@ -216,7 +312,7 @@ export default function Home() {
       // 4. Ensure default trusted phone & electronic brands exist
       for (const defBrand of DEFAULT_STORE_BRANDS) {
         const key = normalizeBrandKey(defBrand);
-        if (key && !brandMap.has(key)) {
+        if (key && key !== 'jayliam' && key !== 'jayliamtech' && key !== 'accessories' && key !== 'accessory' && !brandMap.has(key)) {
           brandMap.set(key, {
             id: `default-brand-${defBrand.slug || key}`,
             name: defBrand.name,
@@ -231,7 +327,22 @@ export default function Home() {
       // 5. Guarantee strict uniqueness of each brand ID and filter inactive
       const seenBrandIds = new Set<string>();
       let finalBrands = Array.from(brandMap.values())
-        .filter((b: any) => b.is_active !== false && b.name)
+        .filter((b: any) => {
+          const k = normalizeBrandKey(b);
+          const nameLower = (b.name || '').toLowerCase();
+          return (
+            b.is_active !== false && 
+            nameLower && 
+            nameLower !== 'jayliam' && 
+            b.slug !== 'jayliam' &&
+            nameLower !== 'accessories' &&
+            b.slug !== 'accessories' &&
+            nameLower !== 'accessory' &&
+            b.slug !== 'accessory' &&
+            k !== 'accessories' &&
+            k !== 'accessory'
+          );
+        })
         .map((b: any, idx: number) => {
           let uniqueId = String(b.id || `brand-${b.slug || idx}`).trim();
           if (seenBrandIds.has(uniqueId)) {
@@ -252,55 +363,72 @@ export default function Home() {
 
       // Fetch Best Sellers Config in separate try-catch so it doesn't break if table is missing
       try {
+        let manualIds: string[] = [];
+        try {
+          const { data: manualBs } = await supabase
+            .from('best_seller_products')
+            .select('product_id')
+            .order('display_order', { ascending: true });
+          if (manualBs && manualBs.length > 0) {
+            manualIds = manualBs.map((item: any) => item.product_id);
+          }
+        } catch (mErr) {
+          // Table may not exist yet
+        }
+
         const { data: bsConfig, error: bsError } = await supabase
           .from('best_sellers_config')
           .select('*')
           .limit(1)
           .single();
           
+        const configLimit = bsConfig?.limit_count || 8;
+        const isActive = bsConfig ? bsConfig.is_active : true;
+
         if (bsConfig) {
           setBestSellersConfig(bsConfig);
-          if (bsConfig.is_active && mappedProducts) {
-            if (bsConfig.mode === 'auto') {
-               const { data: autoBs } = await supabase.rpc('get_auto_best_sellers', { limit_val: bsConfig.limit_count });
-               if (autoBs && autoBs.length > 0) {
-                 const autoIds = autoBs.map((item: any) => item.product_id);
-                 const sortedAutoBs = autoIds.map(id => mappedProducts.find(p => p.id === id)).filter(Boolean);
-                 // Fallback if not enough data
-                 if (sortedAutoBs.length < bsConfig.limit_count) {
-                   const more = mappedProducts.filter(p => !autoIds.includes(p.id)).slice(0, bsConfig.limit_count - sortedAutoBs.length);
-                   setBestSellersData([...sortedAutoBs, ...more]);
-                 } else {
-                   setBestSellersData(sortedAutoBs);
-                 }
-               } else {
-                 setBestSellersData(mappedProducts.slice(0, bsConfig.limit_count));
-               }
+        }
+
+        if (isActive && mappedProducts && mappedProducts.length > 0) {
+          // Check for products marked as Best Seller via admin checkbox or manual table
+          const checkboxBestSellers = mappedProducts.filter(p => 
+            p.isBestSeller || manualIds.includes(p.id)
+          );
+
+          if (checkboxBestSellers.length > 0) {
+            // Sort to respect display order if present in manualIds
+            const sortedBs = [...checkboxBestSellers].sort((a, b) => {
+              const idxA = manualIds.indexOf(a.id);
+              const idxB = manualIds.indexOf(b.id);
+              if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+              if (idxA !== -1) return -1;
+              if (idxB !== -1) return 1;
+              return 0;
+            });
+            setBestSellersData(sortedBs.slice(0, configLimit));
+          } else if (bsConfig && bsConfig.mode === 'auto') {
+            const { data: autoBs } = await supabase.rpc('get_auto_best_sellers', { limit_val: configLimit });
+            if (autoBs && autoBs.length > 0) {
+              const autoIds = autoBs.map((item: any) => item.product_id);
+              const sortedAutoBs = autoIds.map(id => mappedProducts.find(p => p.id === id)).filter(Boolean);
+              if (sortedAutoBs.length < configLimit) {
+                const more = mappedProducts.filter(p => !autoIds.includes(p.id)).slice(0, configLimit - sortedAutoBs.length);
+                setBestSellersData([...sortedAutoBs, ...more]);
+              } else {
+                setBestSellersData(sortedAutoBs);
+              }
             } else {
-               const { data: manualBs } = await supabase
-                 .from('best_seller_products')
-                 .select('product_id')
-                 .order('display_order', { ascending: true })
-                 .limit(bsConfig.limit_count);
-                 
-               if (manualBs && manualBs.length > 0) {
-                 const manualIds = manualBs.map((item: any) => item.product_id);
-                 const sortedManualBs = manualIds.map(id => mappedProducts.find(p => p.id === id)).filter(Boolean);
-                 setBestSellersData(sortedManualBs);
-               } else {
-                 setBestSellersData(mappedProducts.slice(0, bsConfig.limit_count));
-               }
+              setBestSellersData(mappedProducts.slice(0, configLimit));
             }
+          } else {
+            setBestSellersData(mappedProducts.slice(0, configLimit));
           }
-        } else {
-          // If no config found but no error (empty table), fallback to defaults
-          setBestSellersData(mappedProducts.slice(0, 4));
         }
       } catch (err) {
-         console.warn('Best sellers fetch failed, using fallback.', err);
-         if (mappedProducts) {
-           setBestSellersData(mappedProducts.slice(0, 4));
-         }
+        console.warn('Best sellers fetch failed, using fallback.', err);
+        if (mappedProducts) {
+          setBestSellersData(mappedProducts.slice(0, 4));
+        }
       }
 
 
@@ -434,137 +562,76 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Trust Indicators */}
-      <section className="bg-white py-8 sm:py-10 border-b border-[#E5EAF2]">
+      {/* Category Section - Clean, Modern, Elegant Horizontal Scroll Row */}
+      <section className="py-8 sm:py-12 bg-white border-b border-slate-100 relative">
         <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 md:gap-0 md:divide-x divide-[#E5EAF2]">
-            <div className="flex flex-col items-center text-center gap-2 sm:gap-3 p-2 sm:p-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#F4F9FF] flex items-center justify-center text-[#087FF5]">
-                <Truck size={22} className="sm:w-6 sm:h-6" strokeWidth={1.5} />
-              </div>
-              <div>
-                <h3 className="text-[13px] sm:text-[15px] font-bold text-[#082B52]">Fast Delivery</h3>
-                <p className="text-[11px] sm:text-[13px] text-[#64748B] mt-0.5">Across Kenya</p>
-              </div>
+          {/* Section Header - Just "Shop by Categories" */}
+          <div className="flex items-center justify-between mb-5 sm:mb-6 pb-3 border-b border-slate-100">
+            <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-[#082B52] tracking-tight">
+              Shop by Categories
+            </h2>
+            
+            {/* Horizontal Navigation Arrows */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => scrollCategories('left')}
+                disabled={!canScrollLeft}
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-slate-200 bg-white flex items-center justify-center text-[#082B52] hover:bg-[#F8FAFC] hover:border-[#087FF5]/40 hover:text-[#087FF5] disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm active:scale-95"
+                aria-label="Scroll categories left"
+              >
+                <ChevronLeft size={18} />
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollCategories('right')}
+                disabled={!canScrollRight}
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-slate-200 bg-white flex items-center justify-center text-[#082B52] hover:bg-[#F8FAFC] hover:border-[#087FF5]/40 hover:text-[#087FF5] disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm active:scale-95"
+                aria-label="Scroll categories right"
+              >
+                <ChevronRight size={18} />
+              </button>
             </div>
-            <div className="flex flex-col items-center text-center gap-2 sm:gap-3 p-2 sm:p-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#F4F9FF] flex items-center justify-center text-[#087FF5]">
-                <ShieldCheck size={22} className="sm:w-6 sm:h-6" strokeWidth={1.5} />
-              </div>
-              <div>
-                <h3 className="text-[13px] sm:text-[15px] font-bold text-[#082B52]">Genuine Products</h3>
-                <p className="text-[11px] sm:text-[13px] text-[#64748B] mt-0.5">100% Original</p>
-              </div>
-            </div>
-            <div className="flex flex-col items-center text-center gap-2 sm:gap-3 p-2 sm:p-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#F4F9FF] flex items-center justify-center text-[#087FF5]">
-                <Award size={22} className="sm:w-6 sm:h-6" strokeWidth={1.5} />
-              </div>
-              <div>
-                <h3 className="text-[13px] sm:text-[15px] font-bold text-[#082B52]">Secure Payments</h3>
-                <p className="text-[11px] sm:text-[13px] text-[#64748B] mt-0.5">Safe Shopping</p>
-              </div>
-            </div>
-            <div className="flex flex-col items-center text-center gap-2 sm:gap-3 p-2 sm:p-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#F4F9FF] flex items-center justify-center text-[#087FF5]">
-                <HeadphonesIcon size={22} className="sm:w-6 sm:h-6" strokeWidth={1.5} />
-              </div>
-              <div>
-                <h3 className="text-[13px] sm:text-[15px] font-bold text-[#082B52]">Expert Support</h3>
-                <p className="text-[11px] sm:text-[13px] text-[#64748B] mt-0.5">We're Here to Help</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Category Section */}
-      <section className="py-12 sm:py-16 lg:py-20 bg-white">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12">
-          <div className="text-center mb-8 sm:mb-12">
-            <h2 className="text-2xl sm:text-3xl font-bold text-[#082B52]">Browse Our Categories</h2>
           </div>
           
+          {/* Horizontal Track with Edge Fade Gradients */}
           <div className="relative group">
-            {/* Navigation Buttons (Desktop) */}
-            <button 
-              onClick={() => scrollCategories('left')}
-              className="hidden md:flex absolute -left-4 lg:-left-5 top-1/2 -translate-y-1/2 w-11 h-11 lg:w-12 lg:h-12 bg-white rounded-full shadow-[0_4px_20px_rgba(8,43,82,0.1)] items-center justify-center text-[#082B52] hover:text-[#087FF5] hover:shadow-[0_8px_30px_rgba(8,43,82,0.15)] transition-all z-10 opacity-0 group-hover:opacity-100 disabled:opacity-0"
-              aria-label="Scroll left"
-            >
-              <ChevronLeft size={24} />
-            </button>
-            <button 
-              onClick={() => scrollCategories('right')}
-              className="hidden md:flex absolute -right-4 lg:-right-5 top-1/2 -translate-y-1/2 w-11 h-11 lg:w-12 lg:h-12 bg-white rounded-full shadow-[0_4px_20px_rgba(8,43,82,0.1)] items-center justify-center text-[#082B52] hover:text-[#087FF5] hover:shadow-[0_8px_30px_rgba(8,43,82,0.15)] transition-all z-10 opacity-0 group-hover:opacity-100 disabled:opacity-0"
-              aria-label="Scroll right"
-            >
-              <ChevronRight size={24} />
-            </button>
+            {/* Left Edge Shadow Fade (visible when scrolled) */}
+            <div className={`pointer-events-none absolute left-0 top-0 bottom-0 w-8 sm:w-12 z-10 bg-gradient-to-r from-white to-transparent transition-opacity duration-300 ${canScrollLeft ? 'opacity-100' : 'opacity-0'}`} />
+            
+            {/* Right Edge Shadow Fade (visible when can scroll right) */}
+            <div className={`pointer-events-none absolute right-0 top-0 bottom-0 w-8 sm:w-12 z-10 bg-gradient-to-l from-white to-transparent transition-opacity duration-300 ${canScrollRight ? 'opacity-100' : 'opacity-0'}`} />
 
             <div 
-              ref={scrollContainerRef}
-              className="flex gap-3 sm:gap-5 lg:gap-6 overflow-x-auto scroll-smooth pb-6 pt-2 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+              ref={categoryScrollRef}
+              onScroll={checkCategoryScroll}
+              className="flex gap-3.5 sm:gap-5 overflow-x-auto scroll-smooth py-2 px-1 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
             >
-              {categories.length > 0 ? (
-                categories.map((c) => {
-                  let Icon = Smartphone;
-                  if (c.slug?.includes('laptop')) Icon = Laptop;
-                  if (c.slug?.includes('tablet')) Icon = Monitor;
-                  if (c.slug?.includes('watch')) Icon = Watch;
-                  if (c.slug?.includes('audio') || c.slug?.includes('headphone')) Icon = HeadphonesIcon;
-                  if (c.slug?.includes('appliance')) Icon = HomeIcon;
-                  if (c.slug?.includes('repair')) Icon = Check;
-
-                  return (
-                    <Link key={c.id || c.name || `cat-${c.name}`} to={`/shop?category=${c.id}`} className="flex-shrink-0 w-[145px] xs:w-[165px] sm:w-[190px] md:w-[210px] lg:w-[230px] group flex flex-col items-center text-center bg-white border border-[#E5EAF2] rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:border-[#087FF5]/30 hover:shadow-[0_12px_40px_rgba(8,43,82,0.08)] snap-start">
-                      <div className="w-full aspect-[4/3] bg-[#F8FAFC] flex items-center justify-center p-4 sm:p-6 relative overflow-hidden group-hover:bg-[#F4F9FF] transition-colors">
-                        {c.image_url ? (
-                          <img src={c.image_url} alt={c.name} className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105" />
-                        ) : (
-                          <div className="w-full h-full flex flex-col items-center justify-center text-[#087FF5]/40 group-hover:text-[#087FF5] transition-colors duration-500 group-hover:scale-110">
-                            <Icon size={40} className="sm:w-12 sm:h-12" strokeWidth={1.2} />
-                          </div>
-                        )}
-                      </div>
-                      <div className="p-3 sm:p-4 w-full border-t border-[#E5EAF2]/50 bg-white">
-                        <h3 className="text-[14px] sm:text-[16px] font-bold text-[#082B52] group-hover:text-[#087FF5] transition-colors truncate">{c.name}</h3>
-                      </div>
-                    </Link>
-                  );
-                })
-              ) : (
-                [
-                  { id: 'smartphones', name: 'Smartphones', icon: Smartphone },
-                  { id: 'laptops', name: 'Laptops', icon: Laptop },
-                  { id: 'tablets', name: 'Tablets', icon: Monitor },
-                  { id: 'accessories', name: 'Accessories', icon: Headphones },
-                  { id: 'smartwatches', name: 'Smartwatches', icon: Watch },
-                  { id: 'headphones', name: 'Headphones', icon: HeadphonesIcon },
-                  { id: 'appliances', name: 'Home Appliances', icon: HomeIcon },
-                  { id: 'repairs', name: 'Phone Repairs', icon: Check },
-                ].map(c => (
-                  <Link key={c.id || c.name || `cat-${c.name}`} to={`/shop?category=${c.id}`} className="flex-shrink-0 w-[145px] xs:w-[165px] sm:w-[190px] md:w-[210px] lg:w-[230px] group flex flex-col items-center text-center bg-white border border-[#E5EAF2] rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:border-[#087FF5]/30 hover:shadow-[0_12px_40px_rgba(8,43,82,0.08)] snap-start">
-                    <div className="w-full aspect-[4/3] bg-[#F8FAFC] flex items-center justify-center p-4 sm:p-6 relative overflow-hidden group-hover:bg-[#F4F9FF] transition-colors">
-                      <div className="w-full h-full flex flex-col items-center justify-center text-[#087FF5]/40 group-hover:text-[#087FF5] transition-colors duration-500 group-hover:scale-110">
-                        <c.icon size={40} className="sm:w-12 sm:h-12" strokeWidth={1.2} />
-                      </div>
-                    </div>
-                    <div className="p-3 sm:p-4 w-full border-t border-[#E5EAF2]/50 bg-white">
-                      <h3 className="text-[14px] sm:text-[16px] font-bold text-[#082B52] group-hover:text-[#087FF5] transition-colors truncate">{c.name}</h3>
-                    </div>
-                  </Link>
-                ))
-              )}
+              {(categories.length > 0 ? categories : defaultCategoriesList).map((c) => (
+                <div key={c.id || c.slug || c.name} className="shrink-0 w-[165px] xs:w-[185px] sm:w-[210px] md:w-[230px] lg:w-[245px] snap-start">
+                  <CategoryCard category={c} className="h-full" />
+                </div>
+              ))}
             </div>
           </div>
         </div>
       </section>
 
-      {/* Featured / Brand Products */}
+      {/* Featured Brands Showcase (Samsung, Apple, Infinix, Tecno, etc.) */}
       {brandsData.map((brand, bIdx) => {
-        const brandProducts = allProducts.filter(p => p.brand?.toLowerCase() === brand.name?.toLowerCase());
+        if (!brand.name) return null;
+        const brandNameLower = brand.name.toLowerCase();
+        const brandSlugLower = (brand.slug || '').toLowerCase();
+        if (['jayliam', 'accessories', 'accessory'].includes(brandNameLower) || ['jayliam', 'accessories', 'accessory'].includes(brandSlugLower)) {
+          return null;
+        }
+
+        const brandProducts = allProducts.filter(p => 
+          p.brand && p.brand.toLowerCase() === brandNameLower
+        );
         if (brandProducts.length === 0) return null;
+
+        const viewAllLink = `/shop?brand=${encodeURIComponent(brand.name)}`;
 
         return (
           <section key={`brand-section-${brand.id || brand.slug || bIdx}`} className="py-8 sm:py-12 bg-white">
@@ -576,7 +643,7 @@ export default function Home() {
                   )}
                   <h2 className="text-xl sm:text-2xl font-bold text-[#082B52] truncate">{brand.name}</h2>
                 </div>
-                <Link to={`/shop?brand=${encodeURIComponent(brand.name)}`} className="inline-flex items-center gap-1 text-[13px] sm:text-[14px] font-medium text-[#087FF5] hover:text-[#1D4ED8] transition-colors group shrink-0 whitespace-nowrap">
+                <Link to={viewAllLink} className="inline-flex items-center gap-1 text-[13px] sm:text-[14px] font-medium text-[#087FF5] hover:text-[#1D4ED8] transition-colors group shrink-0 whitespace-nowrap">
                   View all <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
                 </Link>
               </div>
@@ -594,6 +661,43 @@ export default function Home() {
           </section>
         );
       })}
+
+      {/* Dedicated Accessories Category Showcase (Accessories is a Category, NOT a brand) */}
+      {(() => {
+        const accessoryProducts = allProducts.filter(p => p.isAccessory || p.categoryName?.toLowerCase().includes('accessor'));
+        if (accessoryProducts.length === 0) return null;
+
+        return (
+          <section className="py-8 sm:py-12 bg-[#F8FAFC] border-y border-[#E5EAF2]">
+            <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12">
+              <div className="flex justify-between items-center mb-6 sm:mb-8 border-b border-[#E5EAF2] pb-4 gap-4">
+                <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-[#EBF5FF] flex items-center justify-center text-[#087FF5] shrink-0">
+                    <Headphones size={20} />
+                  </div>
+                  <div>
+                    <h2 className="text-xl sm:text-2xl font-bold text-[#082B52] truncate">Accessories</h2>
+                    <p className="text-xs sm:text-sm text-[#64748B] hidden sm:block">Cases, chargers, cables, audio & essentials</p>
+                  </div>
+                </div>
+                <Link to="/shop?category=accessories" className="inline-flex items-center gap-1 text-[13px] sm:text-[14px] font-medium text-[#087FF5] hover:text-[#1D4ED8] transition-colors group shrink-0 whitespace-nowrap">
+                  View all accessories <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                </Link>
+              </div>
+
+              <div className="relative group">
+                <div className="flex gap-3 sm:gap-5 overflow-x-auto scroll-smooth pb-6 pt-2 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                  {accessoryProducts.map((product) => (
+                    <div key={product.id} className="flex-shrink-0 w-[165px] xs:w-[185px] sm:w-[220px] md:w-[240px] lg:w-[260px] snap-start">
+                      <ProductCard product={product} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+        );
+      })()}
 
       {/* Popular Products */}
       <section className="py-12 sm:py-16 lg:py-20 bg-white border-y border-[#E5EAF2]">
@@ -699,24 +803,24 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Why Choose Us */}
+      {/* Why Choose Us - Horizontal Trust Features */}
       <section className="pb-8 lg:pb-12 bg-[#F8FAFC] -mt-4 sm:-mt-6 relative z-10">
         <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12">
-          <div className="bg-[#082B52] rounded-xl shadow-md border border-[#0A3668] overflow-hidden">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-white/10">
+          <div className="bg-[#082B52] rounded-2xl shadow-md border border-[#0A3668] overflow-hidden">
+            <div className="flex sm:grid sm:grid-cols-2 lg:grid-cols-4 overflow-x-auto scrollbar-hide divide-x divide-white/10 py-1 sm:py-0">
               {[
-                { title: "Fast & Reliable", desc: "Swift doorstep delivery.", icon: Truck },
-                { title: "100% Genuine", desc: "Verified authentic products.", icon: ShieldCheck },
-                { title: "Easy Returns", desc: "Hassle-free return policy.", icon: RefreshCcw },
-                { title: "24/7 Support", desc: "Always here to help you.", icon: HeadphonesIcon }
+                { title: "Fast & Reliable", desc: "Swift doorstep delivery across Kenya.", icon: Truck },
+                { title: "100% Genuine", desc: "Verified authentic brand products.", icon: ShieldCheck },
+                { title: "Easy Returns", desc: "Hassle-free 7-day return policy.", icon: RefreshCcw },
+                { title: "24/7 Support", desc: "Dedicated expert tech assistance.", icon: HeadphonesIcon }
               ].map((feature, idx) => (
-                <div key={idx} className="p-3.5 sm:p-4 lg:p-5 flex items-center justify-start sm:justify-center md:justify-start lg:justify-center gap-3 sm:gap-4 group transition-colors hover:bg-white/5">
-                  <div className="flex-shrink-0 w-8 h-8 sm:w-9 sm:h-9 lg:w-10 lg:h-10 rounded-full bg-white/10 text-[#38bdf8] flex items-center justify-center group-hover:scale-105 group-hover:bg-[#38bdf8] group-hover:text-[#082B52] transition-all duration-300">
-                    <feature.icon size={18} className="lg:w-5 lg:h-5" strokeWidth={1.5} />
+                <div key={idx} className="shrink-0 min-w-[220px] sm:min-w-0 p-3.5 sm:p-4 lg:p-5 flex items-center justify-start sm:justify-center md:justify-start lg:justify-center gap-3 sm:gap-3.5 group transition-colors hover:bg-white/5">
+                  <div className="flex-shrink-0 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/10 text-[#38bdf8] flex items-center justify-center group-hover:scale-105 group-hover:bg-[#38bdf8] group-hover:text-[#082B52] transition-all duration-300">
+                    <feature.icon size={18} className="lg:w-5 lg:h-5" strokeWidth={1.75} />
                   </div>
-                  <div className="text-left flex-grow max-w-[200px]">
-                    <h3 className="text-[13px] lg:text-[14px] font-bold text-white mb-0.5 leading-tight">{feature.title}</h3>
-                    <p className="text-slate-300 text-[11px] lg:text-[12px] leading-snug">{feature.desc}</p>
+                  <div className="text-left flex-grow">
+                    <h3 className="text-xs sm:text-[13px] lg:text-sm font-bold text-white mb-0.5 leading-tight">{feature.title}</h3>
+                    <p className="text-slate-300 text-[11px] lg:text-xs leading-snug whitespace-nowrap">{feature.desc}</p>
                   </div>
                 </div>
               ))}

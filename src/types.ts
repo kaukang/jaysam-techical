@@ -8,6 +8,9 @@ export interface Product {
   availability: 'In Stock' | 'Low Stock' | 'Out of Stock';
   imageUrl: string;
   categoryId: string;
+  categoryName?: string;
   isFeatured?: boolean;
+  isAccessory?: boolean;
+  isBestSeller?: boolean;
   oldPrice?: number;
 }
