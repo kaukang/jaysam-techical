@@ -157,7 +157,7 @@ export default function Checkout() {
                   </div>
                   <div>
                     <label htmlFor="phone" className="block text-[13px] font-semibold text-slate-700 mb-1.5">Phone number (M-Pesa / Call)</label>
-                    <input type="tel" id="phone" value={formData.phone} onChange={handleInputChange} required className="w-full px-3.5 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 outline-none transition-all text-[16px] sm:text-[14px] text-slate-900 placeholder-slate-400 shadow-2xs" placeholder="+254 700 000000" />
+                    <input type="tel" id="phone" value={formData.phone} onChange={handleInputChange} required className="w-full px-3.5 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 outline-none transition-all text-[16px] sm:text-[14px] text-slate-900 placeholder-slate-400 shadow-2xs" placeholder="e.g. 0726 503 735" />
                   </div>
                 </div>
               </section>

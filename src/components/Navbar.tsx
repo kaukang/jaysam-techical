@@ -55,6 +55,7 @@ export default function Navbar() {
 
   const marqueeAnnouncements = [
     { icon: Truck, text: 'Free Delivery on Orders Over KSh 5,000' },
+    { icon: Phone, text: `Call / Order: ${STORE_CONFIG.supportPhone}` },
     { icon: ShieldCheck, text: '100% Genuine Tech & Brand Warranty' },
     { icon: Zap, text: 'Express Same-Day Dispatch in Nairobi' },
     { icon: HeadphonesIcon, text: '24/7 Dedicated Customer & Tech Support' },
@@ -324,14 +325,20 @@ export default function Navbar() {
             {/* Contact details footer inside drawer */}
             <div className="mt-auto p-4 border-t border-slate-100 bg-[#F8FAFC]">
               <div className="space-y-2 text-[12px] text-slate-500">
-                <div className="flex items-center gap-2">
+                <a 
+                  href={`tel:${STORE_CONFIG.supportPhone.replace(/\s+/g, '')}`}
+                  className="flex items-center gap-2 hover:text-[#087FF5] transition-colors"
+                >
                   <Phone size={14} className="text-[#087FF5] shrink-0" />
                   <span>{STORE_CONFIG.supportPhone}</span>
-                </div>
-                <div className="flex items-center gap-2">
+                </a>
+                <a 
+                  href={`mailto:${STORE_CONFIG.supportEmail}`}
+                  className="flex items-center gap-2 hover:text-[#087FF5] transition-colors"
+                >
                   <Mail size={14} className="text-[#087FF5] shrink-0" />
                   <span className="truncate">{STORE_CONFIG.supportEmail}</span>
-                </div>
+                </a>
               </div>
             </div>
           </div>

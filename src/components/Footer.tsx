@@ -65,7 +65,7 @@ export default function Footer() {
             <h4 className="font-bold text-[15px] text-white mb-4 sm:mb-5">Contact Us</h4>
             <ul className="space-y-2.5 sm:space-y-3">
               <li className="break-all"><a href={`mailto:${STORE_CONFIG.supportEmail}`} className="text-[14px] text-slate-400 hover:text-white transition-colors">{STORE_CONFIG.supportEmail}</a></li>
-              <li><a href={`tel:${STORE_CONFIG.supportPhone}`} className="text-[14px] text-slate-400 hover:text-white transition-colors">Phone: {STORE_CONFIG.supportPhone}</a></li>
+              <li><a href={`tel:${STORE_CONFIG.supportPhone.replace(/\s+/g, '')}`} className="text-[14px] text-slate-400 hover:text-white transition-colors">Phone: {STORE_CONFIG.supportPhone}</a></li>
               <li><span className="text-[14px] text-slate-400">{STORE_CONFIG.address.street}, {STORE_CONFIG.address.city}</span></li>
             </ul>
           </div>

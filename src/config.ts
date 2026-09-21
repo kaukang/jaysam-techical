@@ -9,7 +9,8 @@ export const STORE_CONFIG = {
   },
   hours: 'Mon-Sat: 8:00 AM - 7:00 PM',
   supportEmail: 'support@jayliamtech.co.ke',
-  supportPhone: '+254 700 000 000',
+  supportPhone: '+254 726 503 735',
+  supportPhoneRaw: '0726503735',
   categories: [
     { id: 'smartphones', name: 'Smartphones' },
     { id: 'laptops', name: 'Laptops' },
