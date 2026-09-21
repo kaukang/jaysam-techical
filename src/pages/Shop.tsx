@@ -16,10 +16,8 @@ export default function Shop() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<any[]>(STORE_CONFIG.categories);
-  const [searchInput, setSearchInput] = useState(searchQueryParam);
 
   useEffect(() => {
-    setSearchInput(searchQueryParam);
     fetchData();
   }, [categoryId, brandQuery, searchQueryParam]);
 
@@ -152,35 +150,9 @@ export default function Shop() {
     }
   };
 
-  const handleSearchForm = (e: React.FormEvent) => {
-    e.preventDefault();
-    const params = new URLSearchParams(searchParams);
-    if (searchInput.trim()) {
-      params.set('search', searchInput.trim());
-    } else {
-      params.delete('search');
-    }
-    setSearchParams(params);
-  };
-
   return (
     <main className="flex-grow py-6 sm:py-8 md:py-12 bg-[#F8FAFC] min-h-screen">
       <div className="max-w-[1440px] mx-auto px-3 sm:px-6 lg:px-12">
-        
-        {/* Mobile Search - Visible only on small screens */}
-        <div className="mb-4 sm:mb-6 md:hidden">
-          <form onSubmit={handleSearchForm} className="flex items-center bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-600/20 transition-all shadow-xs">
-            <Search size={18} className="text-slate-400 mr-2.5 shrink-0" />
-            <input 
-              type="text" 
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search products, brands..." 
-              className="bg-transparent border-none outline-none text-[16px] sm:text-sm text-slate-900 placeholder-slate-400 w-full" 
-            />
-          </form>
-        </div>
-
         <header className="mb-6 sm:mb-8 md:mb-10">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 sm:gap-6 mb-4 sm:mb-6">
             <div>
