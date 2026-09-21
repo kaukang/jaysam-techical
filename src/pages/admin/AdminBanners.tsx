@@ -444,11 +444,11 @@ export default function AdminBanners() {
                 <div className="border border-slate-200 rounded-xl p-4 bg-slate-50 space-y-3">
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-semibold text-slate-700">Desktop Banner (Primary Fallback)</span>
-                    <span className="text-slate-500">Rec: 1920 × 600 px (ratio ~3.2:1)</span>
+                    <span className="text-slate-500">Scales to 100% width naturally without cropping</span>
                   </div>
                   {bannerData?.image_url ? (
-                    <div className="relative rounded-lg border border-slate-300 overflow-hidden group h-[190px] bg-black">
-                      <img src={bannerData.image_url} alt="Desktop Banner" className="w-full h-full object-cover" />
+                    <div className="relative rounded-lg border border-slate-300 overflow-hidden group h-[190px] bg-slate-950 flex items-center justify-center">
+                      <img src={bannerData.image_url} alt="Desktop Banner" className="w-full h-full object-contain p-2" />
                       <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
                         <button 
                           onClick={() => triggerUpload('desktop')}
@@ -487,11 +487,11 @@ export default function AdminBanners() {
                 <div className="border border-slate-200 rounded-xl p-4 bg-slate-50 space-y-3">
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-semibold text-slate-700">Tablet Banner (640px – 1023px)</span>
-                    <span className="text-slate-500">Rec: 1024 × 480 px (ratio ~2.1:1)</span>
+                    <span className="text-slate-500">Scales to 100% tablet width naturally</span>
                   </div>
                   {bannerData?.image_url_tablet ? (
-                    <div className="relative rounded-lg border border-slate-300 overflow-hidden group h-[190px] bg-black">
-                      <img src={bannerData.image_url_tablet} alt="Tablet Banner" className="w-full h-full object-cover" />
+                    <div className="relative rounded-lg border border-slate-300 overflow-hidden group h-[190px] bg-slate-950 flex items-center justify-center">
+                      <img src={bannerData.image_url_tablet} alt="Tablet Banner" className="w-full h-full object-contain p-2" />
                       <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
                         <button 
                           onClick={() => triggerUpload('tablet')}
@@ -530,11 +530,11 @@ export default function AdminBanners() {
                 <div className="border border-slate-200 rounded-xl p-4 bg-slate-50 space-y-3">
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-semibold text-slate-700">Mobile Banner (320px – 639px)</span>
-                    <span className="text-slate-500">Rec: 750 × 560 px (ratio ~4:3)</span>
+                    <span className="text-slate-500">Scales to 100% phone width naturally</span>
                   </div>
                   {bannerData?.image_url_mobile ? (
-                    <div className="relative rounded-lg border border-slate-300 overflow-hidden group h-[190px] bg-black">
-                      <img src={bannerData.image_url_mobile} alt="Mobile Banner" className="w-full h-full object-cover" />
+                    <div className="relative rounded-lg border border-slate-300 overflow-hidden group h-[190px] bg-slate-950 flex items-center justify-center">
+                      <img src={bannerData.image_url_mobile} alt="Mobile Banner" className="w-full h-full object-contain p-2" />
                       <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
                         <button 
                           onClick={() => triggerUpload('mobile')}
@@ -561,7 +561,7 @@ export default function AdminBanners() {
                         <>
                           <Upload size={28} className="mb-2 text-[#087FF5]" />
                           <span className="font-medium text-sm text-slate-700 mb-0.5">Upload Dedicated Mobile Banner</span>
-                          <span className="text-xs text-slate-400">Maintains sharpness & prevents text cutoff on phones</span>
+                          <span className="text-xs text-slate-400">Optional: Fits all phone sizes cleanly</span>
                         </>
                       )}
                     </div>
@@ -641,61 +641,69 @@ export default function AdminBanners() {
               maxWidth: '100%'
             }}
           >
-            {/* Simulated Promo Banner */}
-            <div className={`relative w-full flex items-center overflow-hidden ${
-              previewDevice === 'mobile' 
-                ? 'aspect-[4/3] min-h-[220px]' 
-                : previewDevice === 'tablet' 
-                  ? 'aspect-[2.2/1] min-h-[280px]' 
-                  : 'aspect-[3.1/1] min-h-[320px]'
-            }`}>
-              {/* Background Picture */}
-              <ResponsiveBannerImage
-                desktopUrl={bannerData?.image_url}
-                tabletUrl={bannerData?.image_url_tablet}
-                mobileUrl={bannerData?.image_url_mobile}
-                fallbackUrl="https://images.unsplash.com/photo-1616348436168-de43ad0db179?q=80&w=2000&auto=format&fit=crop"
-                alt="Promo Banner Preview"
-                className="absolute inset-0 w-full h-full block"
-                imgClassName="w-full h-full object-cover object-center"
-              />
+            {/* Simulated Promo Banner - Natural Responsive Image (Not a Background Image) */}
+            <div className="w-full">
+              {bannerData?.show_text_overlay && bannerData?.title ? (
+                <div className="relative w-full rounded-2xl overflow-hidden shadow-md border border-slate-300 bg-slate-900">
+                  <ResponsiveBannerImage
+                    desktopUrl={bannerData?.image_url}
+                    tabletUrl={bannerData?.image_url_tablet}
+                    mobileUrl={bannerData?.image_url_mobile}
+                    fallbackUrl="https://images.unsplash.com/photo-1616348436168-de43ad0db179?q=80&w=2000&auto=format&fit=crop"
+                    alt="Promo Banner Preview"
+                    className="w-full block"
+                    imgClassName="w-full h-auto block"
+                  />
 
-              {/* Text Overlay (if enabled) */}
-              {bannerData?.show_text_overlay && bannerData?.title && (
-                <div className="absolute inset-0 z-10 flex items-center bg-gradient-to-r from-black/85 via-black/55 to-transparent">
-                  <div className={`flex flex-col items-start justify-center max-w-[560px] ${
-                    previewDevice === 'mobile' ? 'p-4' : previewDevice === 'tablet' ? 'p-8' : 'p-10'
-                  }`}>
-                    <h3 
-                      className="font-extrabold text-white leading-tight mb-1.5 drop-shadow-md"
-                      style={{ 
-                        fontSize: previewDevice === 'mobile' ? '1.2rem' : previewDevice === 'tablet' ? '1.65rem' : '2.1rem' 
-                      }}
-                    >
-                      {bannerData.title}
-                    </h3>
+                  {/* Text Overlay (if enabled) */}
+                  <div className="absolute inset-0 z-10 flex items-center bg-gradient-to-r from-black/85 via-black/55 to-transparent">
+                    <div className={`flex flex-col items-start justify-center max-w-[560px] ${
+                      previewDevice === 'mobile' ? 'p-4' : previewDevice === 'tablet' ? 'p-8' : 'p-10'
+                    }`}>
+                      <h3 
+                        className="font-extrabold text-white leading-tight mb-1.5 drop-shadow-md"
+                        style={{ 
+                          fontSize: previewDevice === 'mobile' ? '1.15rem' : previewDevice === 'tablet' ? '1.5rem' : '1.85rem' 
+                        }}
+                      >
+                        {bannerData.title}
+                      </h3>
 
-                    {bannerData.subtitle && (
-                      <p className={`text-slate-200 leading-snug mb-3 drop-shadow max-w-md ${
-                        previewDevice === 'mobile' ? 'text-xs line-clamp-2' : 'text-sm'
-                      }`}>
-                        {bannerData.subtitle}
-                      </p>
-                    )}
-
-                    <div className="flex flex-wrap gap-2">
-                      {bannerData.btn_text && (
-                        <button className="bg-[#087FF5] text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold shadow-sm">
-                          {bannerData.btn_text}
-                        </button>
+                      {bannerData.subtitle && (
+                        <p className={`text-slate-200 leading-snug mb-3 drop-shadow max-w-md ${
+                          previewDevice === 'mobile' ? 'text-xs line-clamp-2' : 'text-sm'
+                        }`}>
+                          {bannerData.subtitle}
+                        </p>
                       )}
-                      {bannerData.secondary_btn_text && (
-                        <button className="bg-white/15 border border-white/30 text-white px-3.5 py-1.5 rounded-lg text-xs font-medium backdrop-blur-sm">
-                          {bannerData.secondary_btn_text}
-                        </button>
-                      )}
+
+                      <div className="flex flex-wrap gap-2">
+                        {bannerData.btn_text && (
+                          <button className="bg-[#087FF5] text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold shadow-sm">
+                            {bannerData.btn_text}
+                          </button>
+                        )}
+                        {bannerData.secondary_btn_text && (
+                          <button className="bg-white/15 border border-white/30 text-white px-3.5 py-1.5 rounded-lg text-xs font-medium backdrop-blur-sm">
+                            {bannerData.secondary_btn_text}
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
+                </div>
+              ) : (
+                /* Pure Graphic Mode - 100% natural display without cropping */
+                <div className="w-full rounded-2xl overflow-hidden shadow-md border border-slate-300 bg-white">
+                  <ResponsiveBannerImage
+                    desktopUrl={bannerData?.image_url}
+                    tabletUrl={bannerData?.image_url_tablet}
+                    mobileUrl={bannerData?.image_url_mobile}
+                    fallbackUrl="https://images.unsplash.com/photo-1616348436168-de43ad0db179?q=80&w=2000&auto=format&fit=crop"
+                    alt="Promo Banner Preview"
+                    className="w-full block"
+                    imgClassName="w-full h-auto block"
+                  />
                 </div>
               )}
             </div>

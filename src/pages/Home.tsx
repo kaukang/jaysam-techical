@@ -732,27 +732,27 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Promotional Banner Section - Fluid, Responsive & Adaptive across 320px to 3840px */}
-      <section className="py-8 sm:py-12 md:py-16 bg-[#F8FAFC]">
+      {/* Promotional Banner Section - Fits All Phones, Tablets & Desktops Without Cropping */}
+      <section className="py-6 sm:py-10 md:py-14 bg-[#F8FAFC]">
         <div className="max-w-[1440px] 2xl:max-w-[1600px] mx-auto px-3.5 xs:px-4 sm:px-6 lg:px-12">
           {promoBannerData?.status !== 'inactive' && (
-            <div className="relative rounded-2xl overflow-hidden shadow-md border border-[#E5EAF2] hover:shadow-lg transition-all group bg-slate-900">
-              <div className="relative w-full aspect-[4/3] xs:aspect-[16/10] sm:aspect-[21/9] md:aspect-[2.6/1] lg:aspect-[3.1/1] min-h-[190px] xs:min-h-[220px] sm:min-h-[260px] md:min-h-[300px] max-h-[460px] flex items-center">
-                {/* Responsive picture artwork with intelligent fallback */}
-                <ResponsiveBannerImage
-                  desktopUrl={promoBannerData?.image_url}
-                  tabletUrl={promoBannerData?.image_url_tablet}
-                  mobileUrl={promoBannerData?.image_url_mobile}
-                  fallbackUrl="https://images.unsplash.com/photo-1616348436168-de43ad0db179?q=80&w=2000&auto=format&fit=crop"
-                  alt={promoBannerData?.title || 'Promotional Banner'}
-                  className="absolute inset-0 w-full h-full block"
-                  imgClassName="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-[1.02]"
-                />
+            <div className="w-full">
+              {promoBannerData?.show_text_overlay === true && promoBannerData?.title && promoBannerData.title !== 'Promo Banner' ? (
+                <div className="relative w-full rounded-2xl sm:rounded-3xl overflow-hidden shadow-sm hover:shadow-md border border-[#E5EAF2] transition-all bg-slate-900 group">
+                  {/* Real responsive picture that scales naturally with width without being cropped as a background */}
+                  <ResponsiveBannerImage
+                    desktopUrl={promoBannerData?.image_url}
+                    tabletUrl={promoBannerData?.image_url_tablet}
+                    mobileUrl={promoBannerData?.image_url_mobile}
+                    fallbackUrl="https://images.unsplash.com/photo-1616348436168-de43ad0db179?q=80&w=2000&auto=format&fit=crop"
+                    alt={promoBannerData?.title || 'Promotional Banner'}
+                    className="w-full block"
+                    imgClassName="w-full h-auto block"
+                  />
 
-                {/* Optional HTML Text Overlay (Active when title exists and not explicitly disabled) */}
-                {promoBannerData?.show_text_overlay !== false && promoBannerData?.title && promoBannerData.title !== 'Promo Banner' ? (
-                  <div className="absolute inset-0 z-10 flex items-center bg-gradient-to-r from-black/85 via-black/55 to-transparent sm:via-black/40">
-                    <div className="p-4 xs:p-6 sm:p-8 md:p-10 lg:p-12 max-w-[640px] flex flex-col items-start justify-center">
+                  {/* Optional HTML Text Overlay */}
+                  <div className="absolute inset-0 z-10 flex items-center bg-gradient-to-r from-black/85 via-black/55 to-transparent sm:via-black/40 p-4 xs:p-6 sm:p-8 md:p-10 lg:p-12">
+                    <div className="max-w-[640px] flex flex-col items-start justify-center">
                       <h3 
                         className="font-extrabold text-white leading-tight mb-1.5 sm:mb-2 drop-shadow-md"
                         style={{ fontSize: 'clamp(1.15rem, 2.6vw + 0.4rem, 2.25rem)' }}
@@ -787,17 +787,25 @@ export default function Home() {
                       </div>
                     </div>
                   </div>
-                ) : (
-                  /* Whole banner is a clickable link when used as pure artwork */
-                  promoBannerData?.btn_link && (
-                    <Link 
-                      to={promoBannerData.btn_link} 
-                      className="absolute inset-0 z-10" 
-                      aria-label={promoBannerData?.title || 'Shop Promotion'} 
-                    />
-                  )
-                )}
-              </div>
+                </div>
+              ) : (
+                /* Pure Graphic Banner Mode - 100% full image fits all phones & tablets without cropping */
+                <Link 
+                  to={promoBannerData?.btn_link || '/shop'}
+                  className="block w-full rounded-2xl sm:rounded-3xl overflow-hidden shadow-sm hover:shadow-md border border-[#E5EAF2] transition-all group bg-white focus:outline-none focus:ring-2 focus:ring-[#087FF5]"
+                  aria-label={promoBannerData?.title || 'Promotional Banner'}
+                >
+                  <ResponsiveBannerImage
+                    desktopUrl={promoBannerData?.image_url}
+                    tabletUrl={promoBannerData?.image_url_tablet}
+                    mobileUrl={promoBannerData?.image_url_mobile}
+                    fallbackUrl="https://images.unsplash.com/photo-1616348436168-de43ad0db179?q=80&w=2000&auto=format&fit=crop"
+                    alt={promoBannerData?.title || 'Promotional Banner'}
+                    className="w-full block"
+                    imgClassName="w-full h-auto block transition-transform duration-500 group-hover:scale-[1.008]"
+                  />
+                </Link>
+              )}
             </div>
           )}
         </div>

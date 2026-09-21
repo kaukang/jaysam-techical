@@ -58,7 +58,7 @@ export default function ResponsiveBannerImage({
 
   if (hasError) {
     return (
-      <div className={`${className} bg-gradient-to-r from-slate-900 via-[#082B52] to-slate-950 flex items-center justify-center`}>
+      <div className={`${className} min-h-[160px] bg-gradient-to-r from-slate-900 via-[#082B52] to-slate-950 flex items-center justify-center`}>
         <div className="text-center px-4">
           <span className="text-white/50 text-xs sm:text-sm font-medium tracking-wide">Jayliam Tech Electronics</span>
         </div>

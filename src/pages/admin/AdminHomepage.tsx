@@ -432,7 +432,7 @@ export default function AdminHomepage() {
                 <div className="border border-slate-200 rounded-xl p-4 bg-slate-50 space-y-3">
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-semibold text-slate-700">Desktop Image (Primary Fallback)</span>
-                    <span className="text-slate-500">Rec: 1920 × 700 px (ratio ~2.7:1)</span>
+                    <span className="text-slate-500">Rec: 1920 × 800 px (ratio ~2.4:1)</span>
                   </div>
                   {heroData?.image_url ? (
                     <div className="relative rounded-lg border border-slate-300 overflow-hidden group h-[200px] bg-black">
@@ -475,7 +475,7 @@ export default function AdminHomepage() {
                 <div className="border border-slate-200 rounded-xl p-4 bg-slate-50 space-y-3">
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-semibold text-slate-700">Tablet Image (640px – 1023px)</span>
-                    <span className="text-slate-500">Rec: 1024 × 560 px (ratio ~16:9)</span>
+                    <span className="text-slate-500">Rec: 1200 × 550 px (ratio ~2.2:1)</span>
                   </div>
                   {heroData?.image_url_tablet ? (
                     <div className="relative rounded-lg border border-slate-300 overflow-hidden group h-[200px] bg-black">
@@ -518,7 +518,7 @@ export default function AdminHomepage() {
                 <div className="border border-slate-200 rounded-xl p-4 bg-slate-50 space-y-3">
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-semibold text-slate-700">Mobile Image (320px – 639px)</span>
-                    <span className="text-slate-500">Rec: 750 × 600 px (ratio ~4:3 or 1:1)</span>
+                    <span className="text-slate-500">Rec: 750 × 375 px (ratio ~2:1)</span>
                   </div>
                   {heroData?.image_url_mobile ? (
                     <div className="relative rounded-lg border border-slate-300 overflow-hidden group h-[200px] bg-black">
@@ -649,9 +649,9 @@ export default function AdminHomepage() {
               </div>
 
               {/* Scrim Gradient */}
-              <div className="absolute inset-0 z-10 bg-gradient-to-r from-black/95 via-black/80 to-black/35 md:via-black/60 md:to-transparent" />
+              <div className="absolute inset-0 z-10 bg-gradient-to-r from-black/95 via-black/80 to-black/35 md:via-black/60 md:to-transparent pointer-events-none" />
               {previewDevice === 'mobile' && (
-                <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/85 via-black/40 to-transparent" />
+                <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/85 via-black/40 to-transparent pointer-events-none" />
               )}
 
               {/* Text Layer */}
