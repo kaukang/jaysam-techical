@@ -700,9 +700,9 @@ export default function Home() {
       })()}
 
       {/* Popular Products */}
-      <section className="py-12 sm:py-16 lg:py-20 bg-white border-y border-[#E5EAF2]">
+      <section className="pt-8 sm:pt-12 lg:pt-16 pb-4 sm:pb-7 lg:pb-10 bg-white border-y border-[#E5EAF2]">
         <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12">
-          <div className="flex justify-between items-center mb-8 sm:mb-12">
+          <div className="flex justify-between items-center mb-6 sm:mb-10">
             <div>
               <h2 className="text-2xl sm:text-3xl font-bold text-[#082B52]">Popular Products</h2>
             </div>
@@ -732,11 +732,11 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Promotional Banner Section - Fits All Phones, Tablets & Desktops Without Cropping */}
-      <section className="py-6 sm:py-10 md:py-14 bg-[#F8FAFC]">
+      {/* Promotional Banner & Trust Badges Section - Natural Responsive Layout */}
+      <section className="pt-3 sm:pt-6 md:pt-8 pb-8 sm:pb-12 lg:pb-16 bg-[#F8FAFC]">
         <div className="max-w-[1440px] 2xl:max-w-[1600px] mx-auto px-3.5 xs:px-4 sm:px-6 lg:px-12">
           {promoBannerData?.status !== 'inactive' && (
-            <div className="w-full">
+            <div className="w-full max-w-[440px] xs:max-w-[540px] sm:max-w-none mx-auto">
               {promoBannerData?.show_text_overlay === true && promoBannerData?.title && promoBannerData.title !== 'Promo Banner' ? (
                 <div className="relative w-full rounded-2xl sm:rounded-3xl overflow-hidden shadow-sm hover:shadow-md border border-[#E5EAF2] transition-all bg-slate-900 group">
                   {/* Real responsive picture that scales naturally with width without being cropped as a background */}
@@ -751,27 +751,27 @@ export default function Home() {
                   />
 
                   {/* Optional HTML Text Overlay */}
-                  <div className="absolute inset-0 z-10 flex items-center bg-gradient-to-r from-black/85 via-black/55 to-transparent sm:via-black/40 p-4 xs:p-6 sm:p-8 md:p-10 lg:p-12">
+                  <div className="absolute inset-0 z-10 flex items-center bg-gradient-to-r from-black/85 via-black/55 to-transparent sm:via-black/40 p-3.5 xs:p-6 sm:p-8 md:p-10 lg:p-12">
                     <div className="max-w-[640px] flex flex-col items-start justify-center">
                       <h3 
-                        className="font-extrabold text-white leading-tight mb-1.5 sm:mb-2 drop-shadow-md"
-                        style={{ fontSize: 'clamp(1.15rem, 2.6vw + 0.4rem, 2.25rem)' }}
+                        className="font-extrabold text-white leading-tight mb-1 sm:mb-2 drop-shadow-md"
+                        style={{ fontSize: 'clamp(1.05rem, 2.4vw + 0.4rem, 2.25rem)' }}
                       >
                         {promoBannerData.title}
                       </h3>
                       {promoBannerData.subtitle && (
                         <p 
-                          className="text-slate-200 line-clamp-2 sm:line-clamp-3 leading-snug mb-3.5 sm:mb-5 max-w-md drop-shadow"
-                          style={{ fontSize: 'clamp(0.75rem, 1.2vw + 0.35rem, 1rem)' }}
+                          className="text-slate-200 line-clamp-2 sm:line-clamp-3 leading-snug mb-2.5 sm:mb-5 max-w-md drop-shadow"
+                          style={{ fontSize: 'clamp(0.72rem, 1.1vw + 0.35rem, 1rem)' }}
                         >
                           {promoBannerData.subtitle}
                         </p>
                       )}
-                      <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+                      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                         {promoBannerData.btn_text && (
                           <Link 
                             to={promoBannerData.btn_link || '/shop'} 
-                            className="bg-[#087FF5] hover:bg-[#0666C5] text-white px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-semibold min-h-[40px] flex items-center justify-center shadow-md active:scale-95 transition-all"
+                            className="bg-[#087FF5] hover:bg-[#0666C5] text-white px-3.5 sm:px-6 py-1.5 sm:py-2.5 rounded-lg text-xs sm:text-sm font-semibold min-h-[36px] sm:min-h-[40px] flex items-center justify-center shadow-md active:scale-95 transition-all"
                           >
                             {promoBannerData.btn_text}
                           </Link>
@@ -779,7 +779,7 @@ export default function Home() {
                         {promoBannerData.secondary_btn_text && (
                           <Link 
                             to={promoBannerData.secondary_btn_link || '/shop'} 
-                            className="bg-white/15 hover:bg-white/25 text-white border border-white/30 backdrop-blur-sm px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium min-h-[40px] flex items-center justify-center active:scale-95 transition-all"
+                            className="bg-white/15 hover:bg-white/25 text-white border border-white/30 backdrop-blur-sm px-3.5 sm:px-6 py-1.5 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium min-h-[36px] sm:min-h-[40px] flex items-center justify-center active:scale-95 transition-all"
                           >
                             {promoBannerData.secondary_btn_text}
                           </Link>
@@ -808,65 +808,63 @@ export default function Home() {
               )}
             </div>
           )}
-        </div>
-      </section>
 
-      {/* Why Choose Us - Horizontal Trust Features */}
-      <section className="pb-8 lg:pb-12 bg-[#F8FAFC] -mt-3 sm:-mt-6 relative z-10">
-        <div className="max-w-[1440px] mx-auto px-3.5 xs:px-4 sm:px-6 lg:px-12">
-          <div className="bg-[#082B52] rounded-2xl shadow-md border border-[#0A3668] overflow-hidden relative">
-            {/* Mobile Phone Mode: Smooth Continuous CSS Marquee Animation */}
-            <div className="block sm:hidden relative overflow-hidden py-1">
-              {/* Soft Edge Gradient Fades for Smooth Entrance/Exit */}
-              <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-8 z-10 bg-gradient-to-r from-[#082B52] to-transparent" />
-              <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 z-10 bg-gradient-to-l from-[#082B52] to-transparent" />
+          {/* Genuine / Easy Returns feature strip directly below the banner with a small, consistent gap */}
+          <div className="w-full max-w-[440px] xs:max-w-[540px] sm:max-w-none mx-auto mt-2.5 sm:mt-3.5 lg:mt-5">
+            <div className="bg-[#082B52] rounded-2xl shadow-md border border-[#0A3668] overflow-hidden relative">
+              {/* Mobile Phone Mode: Smooth Continuous CSS Marquee Animation */}
+              <div className="block sm:hidden relative overflow-hidden py-1">
+                {/* Soft Edge Gradient Fades for Smooth Entrance/Exit */}
+                <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-8 z-10 bg-gradient-to-r from-[#082B52] to-transparent" />
+                <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 z-10 bg-gradient-to-l from-[#082B52] to-transparent" />
 
-              <div className="animate-trust-marquee flex items-center select-none py-1.5">
-                {/* Render two identical sets for seamless 100% gapless CSS infinite marquee loop */}
-                {[0, 1].map((copyIndex) => (
-                  <div key={copyIndex} className="flex items-center shrink-0">
-                    {[
-                      { title: "Fast & Reliable", desc: "Swift doorstep delivery across Kenya.", icon: Truck },
-                      { title: "100% Genuine", desc: "Verified authentic brand products.", icon: ShieldCheck },
-                      { title: "Easy Returns", desc: "Hassle-free 7-day return policy.", icon: RefreshCcw },
-                      { title: "24/7 Support", desc: "Dedicated expert tech assistance.", icon: HeadphonesIcon }
-                    ].map((feature, idx) => (
-                      <div 
-                        key={`${copyIndex}-${idx}`} 
-                        className="shrink-0 w-[230px] px-3.5 py-2 flex items-center gap-3 border-r border-white/10"
-                      >
-                        <div className="flex-shrink-0 w-9 h-9 rounded-full bg-white/10 text-[#38bdf8] flex items-center justify-center animate-badge-pulse shadow-sm">
-                          <feature.icon size={17} strokeWidth={2} />
+                <div className="animate-trust-marquee flex items-center select-none py-1.5">
+                  {/* Render two identical sets for seamless 100% gapless CSS infinite marquee loop */}
+                  {[0, 1].map((copyIndex) => (
+                    <div key={copyIndex} className="flex items-center shrink-0">
+                      {[
+                        { title: "Fast & Reliable", desc: "Swift doorstep delivery across Kenya.", icon: Truck },
+                        { title: "100% Genuine", desc: "Verified authentic brand products.", icon: ShieldCheck },
+                        { title: "Easy Returns", desc: "Hassle-free 7-day return policy.", icon: RefreshCcw },
+                        { title: "24/7 Support", desc: "Dedicated expert tech assistance.", icon: HeadphonesIcon }
+                      ].map((feature, idx) => (
+                        <div 
+                          key={`${copyIndex}-${idx}`} 
+                          className="shrink-0 w-[230px] px-3.5 py-2 flex items-center gap-3 border-r border-white/10"
+                        >
+                          <div className="flex-shrink-0 w-9 h-9 rounded-full bg-white/10 text-[#38bdf8] flex items-center justify-center animate-badge-pulse shadow-sm">
+                            <feature.icon size={17} strokeWidth={2} />
+                          </div>
+                          <div className="text-left flex-grow overflow-hidden">
+                            <h3 className="text-xs font-bold text-white mb-0.5 leading-tight truncate">{feature.title}</h3>
+                            <p className="text-slate-300 text-[10.5px] leading-snug truncate">{feature.desc}</p>
+                          </div>
                         </div>
-                        <div className="text-left flex-grow overflow-hidden">
-                          <h3 className="text-xs font-bold text-white mb-0.5 leading-tight truncate">{feature.title}</h3>
-                          <p className="text-slate-300 text-[10.5px] leading-snug truncate">{feature.desc}</p>
-                        </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tablet & Desktop Mode: High-Density Structured Grid */}
+              <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-white/10">
+                {[
+                  { title: "Fast & Reliable", desc: "Swift doorstep delivery across Kenya.", icon: Truck },
+                  { title: "100% Genuine", desc: "Verified authentic brand products.", icon: ShieldCheck },
+                  { title: "Easy Returns", desc: "Hassle-free 7-day return policy.", icon: RefreshCcw },
+                  { title: "24/7 Support", desc: "Dedicated expert tech assistance.", icon: HeadphonesIcon }
+                ].map((feature, idx) => (
+                  <div key={idx} className="p-3.5 sm:p-4 lg:p-5 flex items-center justify-start md:justify-start lg:justify-center gap-3 sm:gap-3.5 group transition-colors hover:bg-white/5">
+                    <div className="flex-shrink-0 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/10 text-[#38bdf8] flex items-center justify-center group-hover:scale-105 group-hover:bg-[#38bdf8] group-hover:text-[#082B52] transition-all duration-300">
+                      <feature.icon size={18} className="lg:w-5 lg:h-5" strokeWidth={1.75} />
+                    </div>
+                    <div className="text-left flex-grow">
+                      <h3 className="text-xs sm:text-[13px] lg:text-sm font-bold text-white mb-0.5 leading-tight">{feature.title}</h3>
+                      <p className="text-slate-300 text-[11px] lg:text-xs leading-snug whitespace-nowrap">{feature.desc}</p>
+                    </div>
                   </div>
                 ))}
               </div>
-            </div>
-
-            {/* Tablet & Desktop Mode: High-Density Structured Grid */}
-            <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-white/10">
-              {[
-                { title: "Fast & Reliable", desc: "Swift doorstep delivery across Kenya.", icon: Truck },
-                { title: "100% Genuine", desc: "Verified authentic brand products.", icon: ShieldCheck },
-                { title: "Easy Returns", desc: "Hassle-free 7-day return policy.", icon: RefreshCcw },
-                { title: "24/7 Support", desc: "Dedicated expert tech assistance.", icon: HeadphonesIcon }
-              ].map((feature, idx) => (
-                <div key={idx} className="p-3.5 sm:p-4 lg:p-5 flex items-center justify-start md:justify-start lg:justify-center gap-3 sm:gap-3.5 group transition-colors hover:bg-white/5">
-                  <div className="flex-shrink-0 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/10 text-[#38bdf8] flex items-center justify-center group-hover:scale-105 group-hover:bg-[#38bdf8] group-hover:text-[#082B52] transition-all duration-300">
-                    <feature.icon size={18} className="lg:w-5 lg:h-5" strokeWidth={1.75} />
-                  </div>
-                  <div className="text-left flex-grow">
-                    <h3 className="text-xs sm:text-[13px] lg:text-sm font-bold text-white mb-0.5 leading-tight">{feature.title}</h3>
-                    <p className="text-slate-300 text-[11px] lg:text-xs leading-snug whitespace-nowrap">{feature.desc}</p>
-                  </div>
-                </div>
-              ))}
             </div>
           </div>
         </div>
@@ -874,7 +872,7 @@ export default function Home() {
 
       {/* Best Sellers Section */}
       {bestSellersConfig?.is_active && bestSellersData.length > 0 && (
-        <section className="py-12 sm:py-16 lg:py-20 bg-white border-y border-[#E5EAF2]">
+        <section className="pt-8 sm:pt-12 lg:pt-16 pb-8 sm:pb-12 lg:pb-16 bg-white border-y border-[#E5EAF2]">
           <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12">
             <div className="flex justify-between items-center mb-8 sm:mb-12">
               <div>
