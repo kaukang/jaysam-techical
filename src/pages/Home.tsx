@@ -812,17 +812,52 @@ export default function Home() {
       </section>
 
       {/* Why Choose Us - Horizontal Trust Features */}
-      <section className="pb-8 lg:pb-12 bg-[#F8FAFC] -mt-4 sm:-mt-6 relative z-10">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12">
-          <div className="bg-[#082B52] rounded-2xl shadow-md border border-[#0A3668] overflow-hidden">
-            <div className="flex sm:grid sm:grid-cols-2 lg:grid-cols-4 overflow-x-auto scrollbar-hide divide-x divide-white/10 py-1 sm:py-0">
+      <section className="pb-8 lg:pb-12 bg-[#F8FAFC] -mt-3 sm:-mt-6 relative z-10">
+        <div className="max-w-[1440px] mx-auto px-3.5 xs:px-4 sm:px-6 lg:px-12">
+          <div className="bg-[#082B52] rounded-2xl shadow-md border border-[#0A3668] overflow-hidden relative">
+            {/* Mobile Phone Mode: Smooth Continuous CSS Marquee Animation */}
+            <div className="block sm:hidden relative overflow-hidden py-1">
+              {/* Soft Edge Gradient Fades for Smooth Entrance/Exit */}
+              <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-8 z-10 bg-gradient-to-r from-[#082B52] to-transparent" />
+              <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 z-10 bg-gradient-to-l from-[#082B52] to-transparent" />
+
+              <div className="animate-trust-marquee flex items-center select-none py-1.5">
+                {/* Render two identical sets for seamless 100% gapless CSS infinite marquee loop */}
+                {[0, 1].map((copyIndex) => (
+                  <div key={copyIndex} className="flex items-center shrink-0">
+                    {[
+                      { title: "Fast & Reliable", desc: "Swift doorstep delivery across Kenya.", icon: Truck },
+                      { title: "100% Genuine", desc: "Verified authentic brand products.", icon: ShieldCheck },
+                      { title: "Easy Returns", desc: "Hassle-free 7-day return policy.", icon: RefreshCcw },
+                      { title: "24/7 Support", desc: "Dedicated expert tech assistance.", icon: HeadphonesIcon }
+                    ].map((feature, idx) => (
+                      <div 
+                        key={`${copyIndex}-${idx}`} 
+                        className="shrink-0 w-[230px] px-3.5 py-2 flex items-center gap-3 border-r border-white/10"
+                      >
+                        <div className="flex-shrink-0 w-9 h-9 rounded-full bg-white/10 text-[#38bdf8] flex items-center justify-center animate-badge-pulse shadow-sm">
+                          <feature.icon size={17} strokeWidth={2} />
+                        </div>
+                        <div className="text-left flex-grow overflow-hidden">
+                          <h3 className="text-xs font-bold text-white mb-0.5 leading-tight truncate">{feature.title}</h3>
+                          <p className="text-slate-300 text-[10.5px] leading-snug truncate">{feature.desc}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Tablet & Desktop Mode: High-Density Structured Grid */}
+            <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-white/10">
               {[
                 { title: "Fast & Reliable", desc: "Swift doorstep delivery across Kenya.", icon: Truck },
                 { title: "100% Genuine", desc: "Verified authentic brand products.", icon: ShieldCheck },
                 { title: "Easy Returns", desc: "Hassle-free 7-day return policy.", icon: RefreshCcw },
                 { title: "24/7 Support", desc: "Dedicated expert tech assistance.", icon: HeadphonesIcon }
               ].map((feature, idx) => (
-                <div key={idx} className="shrink-0 min-w-[220px] sm:min-w-0 p-3.5 sm:p-4 lg:p-5 flex items-center justify-start sm:justify-center md:justify-start lg:justify-center gap-3 sm:gap-3.5 group transition-colors hover:bg-white/5">
+                <div key={idx} className="p-3.5 sm:p-4 lg:p-5 flex items-center justify-start md:justify-start lg:justify-center gap-3 sm:gap-3.5 group transition-colors hover:bg-white/5">
                   <div className="flex-shrink-0 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/10 text-[#38bdf8] flex items-center justify-center group-hover:scale-105 group-hover:bg-[#38bdf8] group-hover:text-[#082B52] transition-all duration-300">
                     <feature.icon size={18} className="lg:w-5 lg:h-5" strokeWidth={1.75} />
                   </div>

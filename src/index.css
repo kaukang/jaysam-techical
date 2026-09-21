@@ -70,4 +70,46 @@
   }
 }
 
+/* Phone Trust Badge CSS Animation */
+@keyframes trust-marquee {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.animate-trust-marquee {
+  display: flex;
+  width: max-content;
+  animation: trust-marquee 20s linear infinite;
+  will-change: transform;
+}
+
+.animate-trust-marquee:hover,
+.animate-trust-marquee:active {
+  animation-play-state: paused;
+}
+
+@keyframes badge-pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(56, 189, 248, 0);
+  }
+}
+
+.animate-badge-pulse {
+  animation: badge-pulse-glow 2.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-trust-marquee,
+  .animate-badge-pulse {
+    animation: none;
+  }
+}
+
 
